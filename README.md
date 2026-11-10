@@ -14,7 +14,7 @@ You **must** have Git LFS installed before cloning this repository, or the 3D as
 Clone the repository to your local machine:
 
 
-git clone [https://github.com/thebuildercore/your-xr-project.git](https://github.com/thebuildercore/your-xr-project.git)
+git clone [https://github.com/thebuildercore/genie.git](https://github.com/thebuildercore/genie.git)
 (Git LFS will automatically download the heavy assets in the background).
  
 Open Unity Hub, click Add, and select the cloned project folder.
