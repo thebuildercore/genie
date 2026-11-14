@@ -51,6 +51,7 @@ public class GameEventManager : MonoBehaviour
         {
             currentScore += 50; // Bonus points for fetching
             Debug.Log($"Good boy! Score is now {currentScore}");
+            companion.DestroyCurrentToy();
             companion.ChangeState(CompanionBrain.CompanionState.Idle);
             companion.companionAnimator.SetTrigger("PlayHappyAnim");
         }
