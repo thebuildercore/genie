@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 public class CompanionBrain : MonoBehaviour
 {
@@ -7,18 +8,50 @@ public class CompanionBrain : MonoBehaviour
         Idle,
         Wandering,
         Interacting,
-        Sleeping
+        Sleeping,
+        Fetching,
+        WaitingForReward
     }
 
     public CompanionState currentState = CompanionState.Idle;
-    public Animator companionAnimator;
 
-    void update()
+    public Animator companionAnimator;
+    private NavMeshAgent agent;
+
+    [HideInInspector]
+    public Vector3 targetLocation;
+
+    void Start()
     {
+        agent = GetComponent<NavMeshAgent>();
+    }
+
+    void Update()
+    {
+        float speed = agent.velocity.magnitude;
+        companionAnimator.SetFloat("MovementSpeed", speed);
+
         switch (currentState) 
         {
             case CompanionState.Idle:
             // Wait for player interaction or a timer to start wandering
+            break;
+
+            case CompanionState.Fetching:
+            agent.SetDestination(targetLocation);
+            
+            // verify if companion reached the destination
+            if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+            {
+                if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
+                {
+                    Debug.Log("Companion reached the toy!");
+                    ChangeState(CompanionState.WaitingForReward);
+                }
+            }
+            break;
+
+            case CompanionState.WaitingForReward:
             break;
 
             case CompanionState.Wandering:

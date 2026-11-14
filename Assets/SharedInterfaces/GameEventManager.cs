@@ -36,9 +36,25 @@ public class GameEventManager : MonoBehaviour
 
 // --- [Site 04] ---
 
-    public void onCompanionPetted() 
+    // public void OnCompanionPetted() 
+    // {
+    //     if (companion.currentState != CompanionBrain.CompanionState.Sleeping)
+    //     {
+    //         companion.ChangeState(CompanionBrain.CompanionState.Interacting);
+    //         companion.companionAnimator.SetTrigger("PlayHappyAnim");
+    //     }
+    // }
+
+    public void OnCompanionPetted() 
     {
-        if (companion.currentState != CompanionBrain.CompanionState.Sleeping)
+        if (companion.currentState == CompanionBrain.CompanionState.WaitingForReward)
+        {
+            currentScore += 50; // Bonus points for fetching
+            Debug.Log($"Good boy! Score is now {currentScore}");
+            companion.ChangeState(CompanionBrain.CompanionState.Idle);
+            companion.companionAnimator.SetTrigger("PlayHappyAnim");
+        }
+        else if (companion.currentState == CompanionBrain.CompanionState.Idle)
         {
             companion.ChangeState(CompanionBrain.CompanionState.Interacting);
             companion.companionAnimator.SetTrigger("PlayHappyAnim");
@@ -46,8 +62,17 @@ public class GameEventManager : MonoBehaviour
     }
 
 // --- [Site 05] ---
-    public void onToyThrown(Vector3 targetPosition)
+    // public void OnToyThrown(Vector3 targetPosition)
+    // {
+    //     companion.ChangeState(CompanionBrain.CompanionState.Wandering);
+    // }
+
+    public void OnToyThrown(Vector3 targetPosition)
     {
-        companion.ChangeState(CompanionBrain.CompanionState.Wandering);
+        if (companion.currentState == CompanionBrain.CompanionState.Idle || companion.currentState == CompanionBrain.CompanionState.Interacting)
+        {
+            companion.targetLocation = targetPosition;
+            companion.ChangeState(CompanionBrain.CompanionState.Fetching);
+        }
     }
 }
