@@ -12,7 +12,8 @@ public class CompanionBrain : MonoBehaviour
         Sleeping,
         Fetching,
         WaitingForReward,
-        PickingUpToy, ReturningToy
+        PickingUpToy, 
+        ReturningToy
     }
 
     public CompanionState currentState = CompanionState.Idle;
@@ -33,29 +34,20 @@ public class CompanionBrain : MonoBehaviour
 
     void Update()
     {
-        float speed = agent.velocity.magnitude;
-        companionAnimator.SetFloat("MovementSpeed", speed);
+        if (agent != null)
+        {
+            companionAnimator.SetFloat("MovementSpeed", agent.velocity.magnitude);
+        }
 
         switch (currentState) 
         {
             case CompanionState.Idle:
-            // Wait for player interaction or a timer to start wandering
-            break;
+                // Wait for player interaction or a timer to start wandering
+                break;
 
-            // case CompanionState.Fetching:
-            // agent.SetDestination(targetLocation);
-            
-            // // verify if companion reached the destination
-            // if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
-            // {
-            //     if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
-            //     {
-            //         Debug.Log("Companion reached the toy!");
-            //         ChangeState(CompanionState.WaitingForReward);
-            //     }
-            // }
-            // break;
             case CompanionState.Fetching:
+            if (!agent.isOnNavMesh) return; // safety net: abort if floating
+
                 agent.SetDestination(targetLocation);
                 agent.stoppingDistance = 0.5f; // Stop right in front of the toy
 
@@ -68,8 +60,10 @@ public class CompanionBrain : MonoBehaviour
                 }
                 break;
 
-                case CompanionState.ReturningToy:
-                // Walk back to the center of the room (Teammate will change this to player's XR position)
+            case CompanionState.ReturningToy:
+            if (!agent.isOnNavMesh) return;
+
+                // Walk back to the center of the room (change this to player's XR position)
                 agent.SetDestination(Vector3.zero);
                 agent.stoppingDistance = 1.0f;
 
@@ -81,7 +75,22 @@ public class CompanionBrain : MonoBehaviour
                     }
                 }
                 break;
-}
+
+            case CompanionState.WaitingForReward:
+                break;
+
+            case CompanionState.Wandering:
+                // Move along the physical room's NavMesh
+                break;
+
+            case CompanionState.Interacting:
+                // look at the player and play happy animations
+                break;
+
+            case CompanionState.Sleeping:
+                //Ignore general inputs, play breathing animation
+                break;
+        }
     }
 
     public void StartFetch(Vector3 location, GameObject spawnedToy)
@@ -130,21 +139,6 @@ public class CompanionBrain : MonoBehaviour
         if (currentToy != null)
         {
             Destroy(currentToy);
-               
-            case CompanionState.WaitingForReward:
-            break;
-
-            case CompanionState.Wandering:
-            // Move along the physical room's NavMesh
-            break;
-
-            case CompanionState.Interacting:
-            // look at the player and play happy animations
-            break;
-
-            case CompanionState.Sleeping:
-            //Ignore general inputs, play breathing animation
-            break;
         }
     }
 
