@@ -37,8 +37,16 @@ public class GameEventManager : MonoBehaviour
         }
     }
 
-    // --- XR HOOKS --- //
-    // TODO: link the Meta XR Interaction SDK directly to these methods
+    // --- XR & UI HOOKS --- //
+    // Links Meta XR Interaction SDK and UI buttons directly to core logic
+
+    public event System.Action OnEnterArenaRequested;
+
+    public void TriggerEnterArena()
+    {
+        Debug.Log("Shared Interface: Enter Arena triggered.");
+        OnEnterArenaRequested?.Invoke();
+    }
 
     public void OnObjectGrabbed()
     {
@@ -54,5 +62,6 @@ public class GameEventManager : MonoBehaviour
     public void OnButtonPushed()
     {
         Debug.Log("Core Logic: XR Poke Button pushed.");
+        OnEnterArenaRequested?.Invoke();
     }
 }

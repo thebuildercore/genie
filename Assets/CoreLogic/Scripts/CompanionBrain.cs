@@ -21,8 +21,13 @@ public class CompanionBrain : MonoBehaviour
     public Animator companionAnimator;
     public Transform rightHandBone;
 
+    public float moveSpeed = 2.5f;
+    public float rotationSpeed = 8.0f;
+
     private NavMeshAgent agent;
     private GameObject currentToy;
+    private Vector3 homePosition;
+    private float fetchStartTime = 0f;
 
     [HideInInspector]
     public Vector3 targetLocation;
@@ -30,66 +35,108 @@ public class CompanionBrain : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        homePosition = transform.position;
     }
 
     void Update()
     {
-        if (agent != null)
-        {
-            companionAnimator.SetFloat("MovementSpeed", agent.velocity.magnitude);
-        }
-
         switch (currentState) 
         {
             case CompanionState.Idle:
-                // Wait for player interaction or a timer to start wandering
+                if (companionAnimator != null)
+                {
+                    companionAnimator.SetFloat("MovementSpeed", 0f);
+                }
                 break;
 
             case CompanionState.Fetching:
-            if (!agent.isOnNavMesh) return; // safety net: abort if floating
-
-                agent.SetDestination(targetLocation);
-                agent.stoppingDistance = 0.5f; // Stop right in front of the toy
-
-                if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
-                {
-                    if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
-                    {
-                        StartCoroutine(PickupToyRoutine());
-                    }
-                }
+                MoveToward(targetLocation, 0.7f, () => StartCoroutine(PickupToyRoutine()));
                 break;
 
             case CompanionState.ReturningToy:
-            if (!agent.isOnNavMesh) return;
-
-                // Walk back to the center of the room (change this to player's XR position)
-                agent.SetDestination(Vector3.zero);
-                agent.stoppingDistance = 1.0f;
-
-                if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
-                {
-                    if (!agent.hasPath || agent.velocity.sqrMagnitude == 0f)
-                    {
-                        StartCoroutine(DropToyRoutine());
-                    }
-                }
+                MoveToward(homePosition, 1.0f, () => StartCoroutine(DropToyRoutine()));
                 break;
 
             case CompanionState.WaitingForReward:
+                if (companionAnimator != null)
+                {
+                    companionAnimator.SetFloat("MovementSpeed", 0f);
+                }
                 break;
 
             case CompanionState.Wandering:
-                // Move along the physical room's NavMesh
-                break;
-
             case CompanionState.Interacting:
-                // look at the player and play happy animations
-                break;
-
             case CompanionState.Sleeping:
-                //Ignore general inputs, play breathing animation
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Robust movement handler:
+    /// Uses NavMeshAgent if valid, or smooth kinematic translation.
+    /// Fixes bug where remainingDistance == 0 on frame 1 caused false instant arrival.
+    /// </summary>
+    private void MoveToward(Vector3 destination, float stopDistance, System.Action onArrived)
+    {
+        Vector3 currentPos = transform.position;
+        Vector3 targetPosFlat = new Vector3(destination.x, currentPos.y, destination.z);
+        float flatDistance = Vector3.Distance(new Vector3(currentPos.x, 0f, currentPos.z), new Vector3(destination.x, 0f, destination.z));
+
+        // Ignore arrival check during the first 0.3s of state transition to allow movement to start
+        if (Time.time - fetchStartTime > 0.3f && flatDistance <= stopDistance)
+        {
+            if (agent != null && agent.enabled && agent.isOnNavMesh)
+            {
+                agent.isStopped = true;
+            }
+            if (companionAnimator != null) companionAnimator.SetFloat("MovementSpeed", 0f);
+            onArrived?.Invoke();
+            return;
+        }
+
+        // Try NavMeshAgent pathfinding first
+        bool navMeshSuccess = false;
+        if (agent != null && agent.enabled && agent.isOnNavMesh)
+        {
+            NavMeshHit hit;
+            Vector3 sampleTarget = destination;
+            if (NavMesh.SamplePosition(destination, out hit, 4.0f, NavMesh.AllAreas))
+            {
+                sampleTarget = hit.position;
+            }
+
+            if (agent.SetDestination(sampleTarget))
+            {
+                agent.isStopped = false;
+                agent.stoppingDistance = stopDistance;
+                navMeshSuccess = true;
+
+                float speed = agent.velocity.magnitude;
+                if (companionAnimator != null)
+                {
+                    companionAnimator.SetFloat("MovementSpeed", speed > 0.1f ? speed : moveSpeed);
+                }
+            }
+        }
+
+        // Fallback to kinematic translation if NavMesh is unbaked or path failed
+        if (!navMeshSuccess)
+        {
+            Vector3 direction = (targetPosFlat - currentPos);
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude > 0.01f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(direction.normalized);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * rotationSpeed);
+            }
+
+            transform.position = Vector3.MoveTowards(currentPos, targetPosFlat, moveSpeed * Time.deltaTime);
+
+            if (companionAnimator != null)
+            {
+                companionAnimator.SetFloat("MovementSpeed", moveSpeed);
+            }
         }
     }
 
@@ -97,37 +144,53 @@ public class CompanionBrain : MonoBehaviour
     {
         targetLocation = location;
         currentToy = spawnedToy;
+        fetchStartTime = Time.time;
         ChangeState(CompanionState.Fetching);
+        Debug.Log($"CompanionBrain: Fetch started towards {targetLocation}");
     }
 
     private IEnumerator PickupToyRoutine()
     {
         ChangeState(CompanionState.PickingUpToy);
-        
-        // Wait 1 second to simulate leaning down/grabbing
-        yield return new WaitForSeconds(1.0f);
+        if (companionAnimator != null) companionAnimator.SetFloat("MovementSpeed", 0f);
 
-        // Snap the toy to the robot's hand and disable its physics
-        if (currentToy != null && rightHandBone != null)
+        // Simulate grabbing motion
+        yield return new WaitForSeconds(0.8f);
+
+        // Snap toy to hand
+        if (currentToy != null)
         {
-            currentToy.transform.SetParent(rightHandBone);
-            currentToy.transform.localPosition = Vector3.zero;
-            
+            Transform snapBone = rightHandBone != null ? rightHandBone : transform;
+            currentToy.transform.SetParent(snapBone);
+            currentToy.transform.localPosition = (rightHandBone != null) ? Vector3.zero : new Vector3(0.2f, 0.5f, 0.4f);
+
             Rigidbody toyRb = currentToy.GetComponent<Rigidbody>();
-            if (toyRb != null) toyRb.isKinematic = true;
+            if (toyRb != null)
+            {
+                toyRb.isKinematic = true;
+                toyRb.linearVelocity = Vector3.zero;
+            }
         }
 
+        yield return new WaitForSeconds(0.2f);
+        fetchStartTime = Time.time;
         ChangeState(CompanionState.ReturningToy);
     }
 
     private IEnumerator DropToyRoutine()
     {
-        // Unparent the toy and turn physics back on so it falls to the floor
+        if (companionAnimator != null) companionAnimator.SetFloat("MovementSpeed", 0f);
+
+        // Drop toy
         if (currentToy != null)
         {
             currentToy.transform.SetParent(null);
             Rigidbody toyRb = currentToy.GetComponent<Rigidbody>();
-            if (toyRb != null) toyRb.isKinematic = false;
+            if (toyRb != null)
+            {
+                toyRb.isKinematic = false;
+                toyRb.useGravity = true;
+            }
         }
 
         ChangeState(CompanionState.WaitingForReward);
