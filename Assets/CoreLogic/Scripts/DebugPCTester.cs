@@ -4,6 +4,8 @@ public class DebugPCTester : MonoBehaviour
 {
     public GameEventManager gameManager;
     public IntroSequenceManager introManager;
+    public CompanionDizzyShake dizzyModule;
+    public CompanionHighFive highFiveModule;
     public GameObject toyPrefab;
     
 #if UNITY_EDITOR || UNITY_STANDALONE
@@ -11,12 +13,22 @@ public class DebugPCTester : MonoBehaviour
     {
         if (gameManager == null)
         {
-            gameManager = FindObjectOfType<GameEventManager>();
+            gameManager = Object.FindFirstObjectByType<GameEventManager>();
         }
 
         if (introManager == null)
         {
-            introManager = FindObjectOfType<IntroSequenceManager>();
+            introManager = Object.FindFirstObjectByType<IntroSequenceManager>();
+        }
+
+        if (dizzyModule == null)
+        {
+            dizzyModule = Object.FindFirstObjectByType<CompanionDizzyShake>();
+        }
+
+        if (highFiveModule == null)
+        {
+            highFiveModule = Object.FindFirstObjectByType<CompanionHighFive>();
         }
     }
 
@@ -46,12 +58,55 @@ public class DebugPCTester : MonoBehaviour
             }
         }
 
-        // 3. Toy throw simulation (T key)
+        // 3. Escalating Poke simulation (P key)
+        if (Input.GetKeyDown(KeyCode.P))
+        {
+            Debug.Log("DEBUG: Simulating Companion Poke (P)");
+            if (gameManager != null)
+            {
+                gameManager.PokeCompanion();
+            }
+        }
+
+        // 4. Dizzy Shake simulation (D key)
+        if (Input.GetKeyDown(KeyCode.D))
+        {
+            Debug.Log("DEBUG: Simulating Dizzy Shake (D)");
+            if (dizzyModule == null)
+            {
+                dizzyModule = Object.FindFirstObjectByType<CompanionDizzyShake>();
+            }
+
+            if (dizzyModule != null)
+            {
+                dizzyModule.SimulateDizzyShake();
+            }
+        }
+
+        // 5. High-Five simulation (H key)
+        if (Input.GetKeyDown(KeyCode.H))
+        {
+            Debug.Log("DEBUG: Simulating Flat Hand High-Five (H)");
+            if (highFiveModule == null)
+            {
+                highFiveModule = Object.FindFirstObjectByType<CompanionHighFive>();
+            }
+
+            if (highFiveModule != null)
+            {
+                highFiveModule.SimulateHighFive();
+            }
+            else if (gameManager != null)
+            {
+                gameManager.OnHandFlatDetected();
+            }
+        }
+
+        // 6. Toy throw simulation (T key)
         if (Input.GetKeyDown(KeyCode.T))
         {
             Debug.Log("DEBUG: Simulating Toy Throw");
             
-            // Calculate throw target in front of companion or player
             Transform origin = (gameManager != null && gameManager.companion != null)
                 ? gameManager.companion.transform
                 : (Camera.main != null ? Camera.main.transform : transform);
@@ -61,7 +116,6 @@ public class DebugPCTester : MonoBehaviour
             if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
             forward.Normalize();
 
-            // Spawn toy 3.0 meters in front on the ground
             Vector3 floorPosition = origin.position + forward * 3.0f;
             floorPosition.y = origin.position.y;
             Vector3 dropPosition = floorPosition + Vector3.up * 1.5f;
@@ -73,7 +127,6 @@ public class DebugPCTester : MonoBehaviour
             }
             else
             {
-                // Fallback toy sphere if prefab is unassigned
                 spawnedToy = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                 spawnedToy.name = "DEBUG_TOY_BALL";
                 spawnedToy.transform.position = dropPosition;
@@ -86,7 +139,7 @@ public class DebugPCTester : MonoBehaviour
                 Renderer rend = spawnedToy.GetComponent<Renderer>();
                 if (rend != null)
                 {
-                    rend.material.color = new Color(1f, 0.45f, 0.1f); // bright orange ball
+                    rend.material.color = new Color(1f, 0.45f, 0.1f);
                 }
             }
 

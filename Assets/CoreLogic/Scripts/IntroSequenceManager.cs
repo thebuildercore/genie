@@ -90,12 +90,12 @@ public class IntroSequenceManager : MonoBehaviour
     {
         if (gameManager == null)
         {
-            gameManager = FindObjectOfType<GameEventManager>();
+            gameManager = Object.FindFirstObjectByType<GameEventManager>();
         }
 
         if (companion == null)
         {
-            companion = FindObjectOfType<CompanionBrain>();
+            companion = Object.FindFirstObjectByType<CompanionBrain>();
         }
 
         if (gameManager != null)
@@ -291,7 +291,7 @@ public class IntroSequenceManager : MonoBehaviour
         {
             return enterArenaPanel.transform.parent;
         }
-        Canvas c = FindObjectOfType<Canvas>();
+        Canvas c = Object.FindFirstObjectByType<Canvas>();
         return c != null ? c.transform : transform;
     }
 
@@ -361,9 +361,9 @@ public class IntroSequenceManager : MonoBehaviour
         hlg.childControlWidth = false;
         hlg.childControlHeight = false;
 
-        CreateGlassCard(cardsContainer.transform, "Card_LookExplore", "\uD83D\uDC41\uFE0F", "Look & Explore", "Move your head\nto look around");
-        CreateGlassCard(cardsContainer.transform, "Card_Interact", "\uD83E\uDD0F", "Interact", "Pinch to select\nor tap");
-        CreateGlassCard(cardsContainer.transform, "Card_Move", "\uD83C\uDFAF", "Move", "Point and teleport\nto explore");
+        CreateGlassCard(cardsContainer.transform, "Card_LookExplore", "\u25CE", "Look & Explore", "Move your head\nto look around");
+        CreateGlassCard(cardsContainer.transform, "Card_Interact", "\u2726", "Interact", "Pinch to select\nor tap");
+        CreateGlassCard(cardsContainer.transform, "Card_Move", "\u25C8", "Move", "Point and teleport\nto explore");
 
         // Continue Button
         if (enterArenaButton == null)
