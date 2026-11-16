@@ -101483,8 +101483,7 @@ MonoBehaviour:
   introManager: {fileID: 0}
   dizzyModule: {fileID: 0}
   highFiveModule: {fileID: 0}
-  toyPrefab: {fileID: 230531332870932318, guid: 40cd6197717695e4d8f2e2034f78eb19,
-    type: 3}
+  blockHelper: {fileID: 0}
 --- !u!1 &1664237600
 GameObject:
   m_ObjectHideFlags: 0
@@ -124331,8 +124330,7 @@ MonoBehaviour:
   introManager: {fileID: 884326185}
   dizzyModule: {fileID: 0}
   highFiveModule: {fileID: 0}
-  toyPrefab: {fileID: 230531332870932318, guid: 40cd6197717695e4d8f2e2034f78eb19,
-    type: 3}
+  blockHelper: {fileID: 0}
 --- !u!1 &2062492036
 GameObject:
   m_ObjectHideFlags: 0
@@ -128616,6 +128614,11 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 230531332870932318, guid: 40cd6197717695e4d8f2e2034f78eb19,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 230531332870932318, guid: 40cd6197717695e4d8f2e2034f78eb19,
         type: 3}
       propertyPath: m_Name

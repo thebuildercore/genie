@@ -91,7 +91,7 @@ This method lets you press **Play** in Unity and immediately test the app inside
 1. Connect your Quest 3 to your PC via USB-C Link cable or Air Link.
 2. Put on the headset, select **Quest Link** from the Quick Settings menu, and launch Link.
 3. Open the Meta Quest PC app on your computer $\rightarrow$ **Settings** $\rightarrow$ **General** $\rightarrow$ verify that **OpenXR Runtime** is set to **Meta Quest Link**.
-4. In Unity, open `Assets/CoreLogic/Scenes/Genie.unity`.
+4. In Unity, open `Assets/_Genie_CoreLogic/Scenes/abc.unity` (or `Assets/_Genie_CoreLogic/Scenes/Genie.unity`).
 5. Press the **Play** button in Unity.
 6. Put on your Quest 3:
    - You will see your physical room via Color Passthrough.
@@ -126,7 +126,7 @@ To create an autonomous build that installs directly onto your Quest 3:
      - **Insight Passthrough**: `Required` or `Supported`.
 
 #### Step 3: Build and Run
-1. In **Build Settings**, verify `Assets/CoreLogic/Scenes/Genie.unity` is checked in the Scenes in Build list.
+1. In **Build Settings**, verify `Assets/_Genie_CoreLogic/Scenes/abc.unity` is checked in the Scenes in Build list.
 2. Click **Build and Run**.
 3. Select an output folder and file name (e.g., `Builds/Kinexus_Quest3.apk`).
 4. Unity will compile, build the APK, and deploy it straight to your Quest 3 headset via ADB.
@@ -139,10 +139,12 @@ To create an autonomous build that installs directly onto your Quest 3:
 | Action | Headset (Quest 3 Hand Tracking / XR) | PC Tester (`DebugPCTester.cs`) |
 | :--- | :--- | :--- |
 | **Continue / Enter Arena** | Finger Poke or Ray Pinch on button | Press `E` or `Return` / Mouse click |
+| **Help With Puzzle Block** | Gesture / look at puzzle block | Press `B` or `T` |
+| **Height Too High ("AWW Sad")** | Request placement on high shelf | Press `1` |
+| **Block Too Big (Tremble & Fall)** | Request lifting oversized block | Press `2` |
 | **High-Five** | Hold hand flat in air (Meta Pose Recognition) | Press `H` |
 | **Escalating Poke** | Tap / poke robot index finger (1-2 ouch/giggle, 3 retreat) | Press `P` |
 | **The Dizzy Shake** | Grab and shake robot rapidly in air, place on ground | Press `D` |
-| **Throw Fetch Toy** | Physical Grab & Throw gesture | Press `T` |
 | **Pet Companion** | Physical Hand stroke on robot | Press `Space` |
 | **Look Around** | Head movement (6DoF tracking) | Main Camera Viewport |
 

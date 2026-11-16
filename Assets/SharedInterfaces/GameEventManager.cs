@@ -10,29 +10,40 @@ public class GameEventManager : MonoBehaviour
 
     public void OnCompanionPetted() 
     {
-        // 1. Petting as a reward after a successful fetch
-        if (companion.currentState == CompanionBrain.CompanionState.WaitingForReward)
+        if (companion != null)
         {
             currentScore += 50;
-            Debug.Log($"Good boy! Score is now {currentScore}. Destroying toy.");
-            
-            companion.DestroyCurrentToy();
-            companion.ChangeState(CompanionBrain.CompanionState.Idle);
-        }
-        // 2. Petting just for fun while it is doing nothing
-        else if (companion.currentState == CompanionBrain.CompanionState.Idle)
-        {
             companion.ChangeState(CompanionBrain.CompanionState.Interacting);
-            Debug.Log("Companion is enjoying the pets!");
+            Debug.Log($"Companion petted! Score is now {currentScore}. Companion is happy!");
         }
     }
 
+    [System.Obsolete("Toy ball fetch is replaced by puzzle block helping. Use RequestBlockHelp instead.")]
     public void OnToyThrown(Vector3 targetPosition, GameObject spawnedToy)
     {
-        if (companion.currentState == CompanionBrain.CompanionState.Idle || companion.currentState == CompanionBrain.CompanionState.Interacting)
-        {
-            companion.StartFetch(targetPosition, spawnedToy);
-        }
+        RequestBlockHelp();
+    }
+
+    // --- PUZZLE BLOCK ASSISTANCE HOOKS --- //
+    public event System.Action OnBlockHelpRequested;
+    public event System.Action<bool, bool> OnBlockDemoRequested;
+
+    /// <summary>
+    /// Player requests the robot companion to help find and deliver a puzzle block.
+    /// </summary>
+    public void RequestBlockHelp()
+    {
+        Debug.Log("Shared Interface: Companion block assistance requested.");
+        OnBlockHelpRequested?.Invoke();
+    }
+
+    /// <summary>
+    /// Demonstrates special block conditions (e.g. Too High / AWW Sad, or Too Big / Fall).
+    /// </summary>
+    public void RequestBlockDemo(bool tooHigh, bool tooBig)
+    {
+        Debug.Log($"Shared Interface: Block Demo requested: tooHigh={tooHigh}, tooBig={tooBig}");
+        OnBlockDemoRequested?.Invoke(tooHigh, tooBig);
     }
 
     // --- ESCALATING POKE HOOKS --- //

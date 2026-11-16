@@ -87,7 +87,11 @@ public class CompanionDizzyShake : MonoBehaviour
 #if UNITY_EDITOR
         if (soundDizzy == null)
         {
-            soundDizzy = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_dizzy.wav");
+            soundDizzy = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_dizzy.wav");
+            if (soundDizzy == null)
+            {
+                soundDizzy = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_dizzy.wav");
+            }
         }
 #endif
     }

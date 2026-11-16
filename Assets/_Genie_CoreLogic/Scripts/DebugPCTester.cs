@@ -6,7 +6,7 @@ public class DebugPCTester : MonoBehaviour
     public IntroSequenceManager introManager;
     public CompanionDizzyShake dizzyModule;
     public CompanionHighFive highFiveModule;
-    public GameObject toyPrefab;
+    public CompanionBlockHelper blockHelper;
     
 #if UNITY_EDITOR || UNITY_STANDALONE
     void Start()
@@ -29,6 +29,11 @@ public class DebugPCTester : MonoBehaviour
         if (highFiveModule == null)
         {
             highFiveModule = Object.FindFirstObjectByType<CompanionHighFive>();
+        }
+
+        if (blockHelper == null)
+        {
+            blockHelper = Object.FindFirstObjectByType<CompanionBlockHelper>();
         }
     }
 
@@ -102,50 +107,61 @@ public class DebugPCTester : MonoBehaviour
             }
         }
 
-        // 6. Toy throw simulation (T key)
-        if (Input.GetKeyDown(KeyCode.T))
+        // 6. Companion Puzzle Block Help (B or T key)
+        // (Replaces old sphere toy ball with core puzzle assistance)
+        if (Input.GetKeyDown(KeyCode.B) || Input.GetKeyDown(KeyCode.T))
         {
-            Debug.Log("DEBUG: Simulating Toy Throw");
-            
-            Transform origin = (gameManager != null && gameManager.companion != null)
-                ? gameManager.companion.transform
-                : (Camera.main != null ? Camera.main.transform : transform);
-
-            Vector3 forward = origin.forward;
-            forward.y = 0f;
-            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
-            forward.Normalize();
-
-            Vector3 floorPosition = origin.position + forward * 3.0f;
-            floorPosition.y = origin.position.y;
-            Vector3 dropPosition = floorPosition + Vector3.up * 1.5f;
-
-            GameObject spawnedToy = null;
-            if (toyPrefab != null)
+            Debug.Log("DEBUG: Simulating Companion Block Help (B / T)");
+            if (blockHelper == null)
             {
-                spawnedToy = Instantiate(toyPrefab, dropPosition, Quaternion.identity);
-            }
-            else
-            {
-                spawnedToy = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                spawnedToy.name = "DEBUG_TOY_BALL";
-                spawnedToy.transform.position = dropPosition;
-                spawnedToy.transform.localScale = Vector3.one * 0.25f;
-
-                Rigidbody rb = spawnedToy.AddComponent<Rigidbody>();
-                rb.mass = 0.5f;
-                rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-
-                Renderer rend = spawnedToy.GetComponent<Renderer>();
-                if (rend != null)
-                {
-                    rend.material.color = new Color(1f, 0.45f, 0.1f);
-                }
+                blockHelper = Object.FindFirstObjectByType<CompanionBlockHelper>();
             }
 
-            if (gameManager != null)
+            if (blockHelper != null)
             {
-                gameManager.OnToyThrown(floorPosition, spawnedToy);
+                blockHelper.HelpWithNearestBlock();
+            }
+            else if (gameManager != null)
+            {
+                gameManager.RequestBlockHelp();
+            }
+        }
+
+        // 7. Special Interaction 1: Height Too High ("AWW Sad" regret reaction) (1 key)
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
+        {
+            Debug.Log("DEBUG: Simulating Block Height Too High / AWW Sad (Key 1)");
+            if (blockHelper == null)
+            {
+                blockHelper = Object.FindFirstObjectByType<CompanionBlockHelper>();
+            }
+
+            if (blockHelper != null)
+            {
+                blockHelper.DemonstrateHeightTooHigh();
+            }
+            else if (gameManager != null)
+            {
+                gameManager.RequestBlockDemo(true, false);
+            }
+        }
+
+        // 8. Special Interaction 2: Block Too Big / Heavy ("Legs Tremble, Drop & Fall") (2 key)
+        if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
+        {
+            Debug.Log("DEBUG: Simulating Block Too Big / Tremble & Fall (Key 2)");
+            if (blockHelper == null)
+            {
+                blockHelper = Object.FindFirstObjectByType<CompanionBlockHelper>();
+            }
+
+            if (blockHelper != null)
+            {
+                blockHelper.DemonstrateBlockTooBig();
+            }
+            else if (gameManager != null)
+            {
+                gameManager.RequestBlockDemo(false, true);
             }
         }
     }

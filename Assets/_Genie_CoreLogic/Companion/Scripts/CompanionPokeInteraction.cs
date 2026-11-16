@@ -95,15 +95,27 @@ public class CompanionPokeInteraction : MonoBehaviour
 #if UNITY_EDITOR
         if (soundOuch == null)
         {
-            soundOuch = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_ouch.wav");
+            soundOuch = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_ouch.wav");
+            if (soundOuch == null)
+            {
+                soundOuch = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_ouch.wav");
+            }
         }
         if (soundGiggle == null)
         {
-            soundGiggle = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_giggle.wav");
+            soundGiggle = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_giggle.wav");
+            if (soundGiggle == null)
+            {
+                soundGiggle = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_giggle.wav");
+            }
         }
         if (soundAnnoyed == null)
         {
-            soundAnnoyed = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_annoyed.wav");
+            soundAnnoyed = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_annoyed.wav");
+            if (soundAnnoyed == null)
+            {
+                soundAnnoyed = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_annoyed.wav");
+            }
         }
 #endif
     }
@@ -132,8 +144,7 @@ public class CompanionPokeInteraction : MonoBehaviour
         // Don't interrupt active fetch loop unless idle or interacting
         if (companionBrain != null && 
             companionBrain.currentState != CompanionBrain.CompanionState.Idle &&
-            companionBrain.currentState != CompanionBrain.CompanionState.Interacting &&
-            companionBrain.currentState != CompanionBrain.CompanionState.WaitingForReward)
+            companionBrain.currentState != CompanionBrain.CompanionState.Interacting)
         {
             return;
         }

@@ -99,11 +99,19 @@ public class CompanionHighFive : MonoBehaviour
 #if UNITY_EDITOR
         if (soundSmack == null)
         {
-            soundSmack = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/highfive_smack.wav");
+            soundSmack = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/highfive_smack.wav");
+            if (soundSmack == null)
+            {
+                soundSmack = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/highfive_smack.wav");
+            }
         }
         if (soundHappyChirp == null)
         {
-            soundHappyChirp = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_happy_chirp.wav");
+            soundHappyChirp = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_happy_chirp.wav");
+            if (soundHappyChirp == null)
+            {
+                soundHappyChirp = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_happy_chirp.wav");
+            }
         }
 #endif
     }
@@ -154,8 +162,7 @@ public class CompanionHighFive : MonoBehaviour
             return;
         }
 
-        // Prevent interrupting critical fetch pickup
-        if (companionBrain != null && (companionBrain.currentState == CompanionBrain.CompanionState.PickingUpToy))
+        if (companionBrain != null && (companionBrain.currentState == CompanionBrain.CompanionState.Interacting))
         {
             return;
         }
