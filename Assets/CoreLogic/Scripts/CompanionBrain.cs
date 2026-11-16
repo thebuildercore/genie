@@ -36,6 +36,22 @@ public class CompanionBrain : MonoBehaviour
     {
         agent = GetComponent<NavMeshAgent>();
         homePosition = transform.position;
+
+        // Auto-attach Companion modules if missing
+        if (GetComponent<CompanionPokeInteraction>() == null)
+        {
+            gameObject.AddComponent<CompanionPokeInteraction>();
+        }
+
+        if (GetComponent<CompanionDizzyShake>() == null)
+        {
+            gameObject.AddComponent<CompanionDizzyShake>();
+        }
+
+        if (GetComponent<CompanionHighFive>() == null)
+        {
+            gameObject.AddComponent<CompanionHighFive>();
+        }
     }
 
     void Update()

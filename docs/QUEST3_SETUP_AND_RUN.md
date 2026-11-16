@@ -136,11 +136,14 @@ To create an autonomous build that installs directly onto your Quest 3:
 
 ## 4. Testing Controls Summary
 
-| Action | Headset (Quest 3) | PC Tester (`DebugPCTester.cs`) |
+| Action | Headset (Quest 3 Hand Tracking / XR) | PC Tester (`DebugPCTester.cs`) |
 | :--- | :--- | :--- |
 | **Continue / Enter Arena** | Finger Poke or Ray Pinch on button | Press `E` or `Return` / Mouse click |
-| **Pet Companion** | Physical Hand touch on robot | Press `Space` |
+| **High-Five** | Hold hand flat in air (Meta Pose Recognition) | Press `H` |
+| **Escalating Poke** | Tap / poke robot index finger (1-2 ouch/giggle, 3 retreat) | Press `P` |
+| **The Dizzy Shake** | Grab and shake robot rapidly in air, place on ground | Press `D` |
 | **Throw Fetch Toy** | Physical Grab & Throw gesture | Press `T` |
+| **Pet Companion** | Physical Hand stroke on robot | Press `Space` |
 | **Look Around** | Head movement (6DoF tracking) | Main Camera Viewport |
 
 ---
