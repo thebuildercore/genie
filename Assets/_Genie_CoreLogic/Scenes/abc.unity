@@ -10130,6 +10130,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &197203758
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -44934,7 +44935,7 @@ AudioSource:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 814101155}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 24300002, guid: 84765b5a9125f494494625d91e97db1c,
     type: 2}
@@ -47913,6 +47914,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &861618090
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -59532,6 +59534,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &1010739112
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -83175,6 +83178,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &1374839244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -94213,6 +94217,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &1549642079
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -99445,6 +99450,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &1637363167
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -101341,6 +101347,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &1658738275
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -101484,6 +101491,10 @@ MonoBehaviour:
   dizzyModule: {fileID: 0}
   highFiveModule: {fileID: 0}
   blockHelper: {fileID: 0}
+  autoFrameCameraForPC: 1
+  pcCameraPosition: {x: 0.1, y: 1.15, z: -0.65}
+  pcCameraRotation: {x: 18, y: 0, z: 0}
+  skipIntroStraightToGame: 0
 --- !u!1 &1664237600
 GameObject:
   m_ObjectHideFlags: 0
@@ -112604,6 +112615,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83e4e6cca11330d4088d729ab4fc9d9f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.XRInteractionManager
+  m_StartingHoverFilters: []
+  m_StartingSelectFilters: []
 --- !u!4 &1852411501
 Transform:
   m_ObjectHideFlags: 0
@@ -118853,6 +118866,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &1950873758
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -119383,6 +119397,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &1966732076
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -121227,6 +121242,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2f59c1eebd3e6742afc70e642c67b17, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameRestart
+  restartButton: {fileID: 0}
 --- !u!114 &2022040255
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -124331,6 +124347,10 @@ MonoBehaviour:
   dizzyModule: {fileID: 0}
   highFiveModule: {fileID: 0}
   blockHelper: {fileID: 0}
+  autoFrameCameraForPC: 1
+  pcCameraPosition: {x: 0.1, y: 1.15, z: -0.65}
+  pcCameraRotation: {x: 18, y: 0, z: 0}
+  skipIntroStraightToGame: 0
 --- !u!1 &2062492036
 GameObject:
   m_ObjectHideFlags: 0
