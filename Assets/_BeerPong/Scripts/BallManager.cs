@@ -4,7 +4,13 @@
 
 using UnityEngine;
 
+#if UNITY_XR_INTERACTION_TOOLKIT_PRESENT
+using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
+#else
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
+#endif
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(BallBouncePhysics))]
@@ -48,7 +54,7 @@ public class BallManager : MonoBehaviour
             spawnPosition = transform.position;
 
         // Subscribe to XRI events to know when ball is held (pause idle timer).
-        var grab = GetComponent<XRGrabInteractable>();
+        var grab = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
         if (grab != null)
         {
             grab.selectEntered.AddListener(_ => isHeld = true);

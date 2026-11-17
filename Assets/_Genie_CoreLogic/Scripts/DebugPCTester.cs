@@ -83,6 +83,22 @@ public class DebugPCTester : MonoBehaviour
 
     void Update()
     {
+        // 0. Close active panel (Escape or X key)
+        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.X))
+        {
+            if (introManager != null)
+            {
+                if (introManager.gameSelectionPanel != null && introManager.gameSelectionPanel.activeSelf)
+                {
+                    introManager.CloseGameSelectionPanel();
+                }
+                else if (introManager.enterArenaPanel != null && introManager.enterArenaPanel.activeSelf)
+                {
+                    introManager.CloseWelcomePanel();
+                }
+            }
+        }
+
         // 1. Enter Arena / Continue (E or Enter key)
         if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Return))
         {

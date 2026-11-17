@@ -3,7 +3,27 @@
 // Requires: XR Interaction Toolkit, a Physics Layer named "Floor"
 
 using UnityEngine;
+
+#if UNITY_XR_INTERACTION_TOOLKIT_PRESENT
 using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
+#endif
+
+#if !UNITY_XR_INTERACTION_TOOLKIT_PRESENT
+namespace UnityEngine.XR.Interaction.Toolkit.Interactables
+{
+    public class XRGrabInteractable : MonoBehaviour
+    {
+        public UnityEngine.Events.UnityEvent<SelectEnterEventArgs> selectEntered = new UnityEngine.Events.UnityEvent<SelectEnterEventArgs>();
+        public UnityEngine.Events.UnityEvent<SelectExitEventArgs> selectExited = new UnityEngine.Events.UnityEvent<SelectExitEventArgs>();
+    }
+}
+namespace UnityEngine.XR.Interaction.Toolkit
+{
+    public class SelectEnterEventArgs : System.EventArgs {}
+    public class SelectExitEventArgs : System.EventArgs {}
+}
+#endif
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable))]
@@ -44,7 +64,7 @@ public class BallBouncePhysics : MonoBehaviour
     /// Called the instant the player grabs the ball.
     /// Resets bounce count so every throw starts clean.
     /// </summary>
-    private void OnGrabbed(SelectEnterEventArgs args)
+    private void OnGrabbed(UnityEngine.XR.Interaction.Toolkit.SelectEnterEventArgs args)
     {
         bounceCount = 0;
         Debug.Log("[BallBouncePhysics] Ball grabbed — bounce count reset.");

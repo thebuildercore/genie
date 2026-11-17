@@ -44,6 +44,14 @@ public class CompanionBlockHelper : MonoBehaviour
     [Tooltip("Size threshold above which a block is deemed too big/heavy for the robot to lift.")]
     public float largeBlockSizeThreshold = 0.35f;
 
+    [Header("Autonomous VR Helper Settings")]
+    [Tooltip("If true, the companion periodically scans for unplaced puzzle blocks and autonomously helps bring them to the user.")]
+    public bool autonomousHelpingEnabled = true;
+    [Tooltip("Seconds between autonomous block helping checks.")]
+    public float autonomousCheckInterval = 14.0f;
+    private float autoHelpTimer = 0f;
+    private bool hasDoneInitialHelp = false;
+
     [Header("State (Read-Only)")]
     [SerializeField] private bool isBusy = false;
     [SerializeField] private GameObject heldBlock = null;
@@ -106,6 +114,28 @@ public class CompanionBlockHelper : MonoBehaviour
         {
             linkedGameManager.OnBlockHelpRequested -= HelpWithNearestBlock;
             linkedGameManager.OnBlockDemoRequested -= HandleDemoRequest;
+        }
+    }
+
+    private void Update()
+    {
+        if (!autonomousHelpingEnabled || isBusy) return;
+
+        // Only help if companion is currently in Idle state
+        if (companionBrain != null && companionBrain.currentState != CompanionBrain.CompanionState.Idle)
+        {
+            return;
+        }
+
+        autoHelpTimer += Time.deltaTime;
+        float threshold = hasDoneInitialHelp ? autonomousCheckInterval : 7.0f;
+        if (autoHelpTimer >= threshold)
+        {
+            autoHelpTimer = 0f;
+            hasDoneInitialHelp = true;
+
+            Debug.Log("CompanionBlockHelper: Autonomous loop triggered block help!");
+            HelpWithNearestBlock();
         }
     }
 

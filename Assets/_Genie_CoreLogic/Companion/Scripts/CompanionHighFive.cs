@@ -43,6 +43,15 @@ public class CompanionHighFive : MonoBehaviour
     [Header("State (Read-Only)")]
     [SerializeField] private bool isHighFiving = false;
 
+    [Header("Quest 3 / VR Gesture Detection")]
+    [Tooltip("If true, automatically detects when the player raises their hand in VR to initiate a high five.")]
+    public bool autoDetectVRHighFive = true;
+    public float handRaiseHoldDuration = 0.45f;
+    private float handRaisedTimer = 0f;
+    private Transform vrLeftHand;
+    private Transform vrRightHand;
+    private float lastHandSearchTime = 0f;
+
     private GameEventManager linkedGameManager;
     private NavMeshAgent navAgent;
     private Vector3 originalLocalScale;
@@ -91,6 +100,88 @@ public class CompanionHighFive : MonoBehaviour
         if (linkedGameManager != null)
         {
             linkedGameManager.OnHighFiveRequested -= StartHighFiveRoutine;
+        }
+    }
+
+    private void Update()
+    {
+        if (autoDetectVRHighFive && !isHighFiving)
+        {
+            CheckVRHighFivePose();
+        }
+    }
+
+    private void CheckVRHighFivePose()
+    {
+        if (companionBrain != null && (companionBrain.currentState == CompanionBrain.CompanionState.Interacting))
+        {
+            return;
+        }
+
+        // Periodically refresh hand anchors
+        if ((vrLeftHand == null || vrRightHand == null) && Time.time - lastHandSearchTime > 2.0f)
+        {
+            lastHandSearchTime = Time.time;
+            FindVRHandAnchors();
+        }
+
+        Camera cam = Camera.main;
+        if (cam == null) return;
+
+        Transform activeRaisedHand = null;
+        if (IsHandRaisedForHighFive(vrRightHand, cam)) activeRaisedHand = vrRightHand;
+        else if (IsHandRaisedForHighFive(vrLeftHand, cam)) activeRaisedHand = vrLeftHand;
+
+        if (activeRaisedHand != null)
+        {
+            handRaisedTimer += Time.deltaTime;
+            if (handRaisedTimer >= handRaiseHoldDuration)
+            {
+                handRaisedTimer = 0f;
+                Debug.Log($"CompanionHighFive: Quest 3 player raised hand for high-five at {activeRaisedHand.position}!");
+                StartHighFiveRoutine(activeRaisedHand.position);
+            }
+        }
+        else
+        {
+            handRaisedTimer = Mathf.Max(0f, handRaisedTimer - Time.deltaTime * 2f);
+        }
+    }
+
+    private bool IsHandRaisedForHighFive(Transform handTr, Camera cam)
+    {
+        if (handTr == null) return false;
+        Vector3 handPos = handTr.position;
+        Vector3 camPos = cam.transform.position;
+
+        // In front of camera
+        Vector3 toHand = (handPos - camPos);
+        float dist = toHand.magnitude;
+        if (dist < 0.25f || dist > 0.95f) return false;
+        if (Vector3.Dot(toHand.normalized, cam.transform.forward) < 0.50f) return false;
+
+        // At or above chest/eye level
+        if (handPos.y < camPos.y - 0.35f) return false;
+
+        // Within arena range of the companion
+        if (Vector3.Distance(transform.position, handPos) > 4.5f) return false;
+
+        return true;
+    }
+
+    private void FindVRHandAnchors()
+    {
+        var allTransforms = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
+        foreach (var t in allTransforms)
+        {
+            if (vrRightHand == null && (t.name == "RightHandOnControllerAnchor" || t.name == "RightHandAnchor" || t.name == "RightHandAnchorDetached" || t.name == "RightControllerInHandAnchor"))
+            {
+                vrRightHand = t;
+            }
+            if (vrLeftHand == null && (t.name == "LeftHandOnControllerAnchor" || t.name == "LeftHandAnchor" || t.name == "LeftHandAnchorDetached" || t.name == "LeftControllerInHandAnchor"))
+            {
+                vrLeftHand = t;
+            }
         }
     }
 

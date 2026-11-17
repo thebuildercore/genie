@@ -427,6 +427,13 @@ public class IntroSequenceManager : MonoBehaviour
             pagerTmp.alignment = TextAlignmentOptions.Center;
         }
 
+        // Close Button (removes Welcome panel)
+        Transform existingClose = enterArenaPanel.transform.Find("WelcomeCloseButton");
+        if (existingClose == null)
+        {
+            CreateCloseButton(enterArenaPanel.transform, "WelcomeCloseButton", new Vector2(-25f, -25f), CloseWelcomePanel);
+        }
+
         WireButton();
     }
 
@@ -567,6 +574,13 @@ public class IntroSequenceManager : MonoBehaviour
 
         // 4. Bottom Widgets
         CreateBottomWidgets(root.transform);
+
+        // Close Button (removes Discover Games panel)
+        Transform existingClose = gameSelectionPanel.transform.Find("DiscoverCloseButton");
+        if (existingClose == null)
+        {
+            CreateCloseButton(gameSelectionPanel.transform, "DiscoverCloseButton", new Vector2(-25f, -25f), CloseGameSelectionPanel);
+        }
     }
 
     private void CreateSidebar(Transform parent)
@@ -1063,5 +1077,72 @@ public class IntroSequenceManager : MonoBehaviour
             gameSelectionPanel.SetActive(true);
             Debug.Log("Kinexus: Discover Your Next Game screen is now ACTIVE!");
         }
+    }
+
+    // =========================================================
+    // PANEL DISMISSAL / CLOSE BUTTONS
+    // =========================================================
+
+    /// <summary>
+    /// Closes and removes the Welcome tutorial panel.
+    /// </summary>
+    public void CloseWelcomePanel()
+    {
+        Debug.Log("IntroSequenceManager: Closed Welcome panel.");
+        if (enterArenaPanel != null) enterArenaPanel.SetActive(false);
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+    }
+
+    /// <summary>
+    /// Closes and removes the Discover Your Next Game panel, freeing view of the arena.
+    /// </summary>
+    public void CloseGameSelectionPanel()
+    {
+        Debug.Log("IntroSequenceManager: Closed Game Selection panel.");
+        if (gameSelectionPanel != null) gameSelectionPanel.SetActive(false);
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+    }
+
+    private GameObject CreateCloseButton(Transform parent, string name, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClickAction)
+    {
+        GameObject closeObj = new GameObject(name);
+        closeObj.transform.SetParent(parent, false);
+        RectTransform rt = closeObj.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(1f, 1f);
+        rt.anchorMax = new Vector2(1f, 1f);
+        rt.pivot = new Vector2(1f, 1f);
+        rt.anchoredPosition = anchoredPos;
+        rt.sizeDelta = new Vector2(38f, 38f);
+
+        Image img = closeObj.AddComponent<Image>();
+        img.color = new Color(0.12f, 0.20f, 0.35f, 0.85f);
+
+        Outline outline = closeObj.AddComponent<Outline>();
+        outline.effectColor = neonAccentColor;
+        outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+        Button btn = closeObj.AddComponent<Button>();
+        ColorBlock cb = btn.colors;
+        cb.normalColor = Color.white;
+        cb.highlightedColor = new Color(1f, 0.4f, 0.4f, 1f);
+        cb.pressedColor = new Color(0.9f, 0.2f, 0.2f, 1f);
+        btn.colors = cb;
+        btn.onClick.AddListener(onClickAction);
+
+        GameObject txtObj = new GameObject("Icon");
+        txtObj.transform.SetParent(closeObj.transform, false);
+        RectTransform txtRt = txtObj.AddComponent<RectTransform>();
+        txtRt.anchorMin = Vector2.zero;
+        txtRt.anchorMax = Vector2.one;
+        txtRt.sizeDelta = Vector2.zero;
+
+        TextMeshProUGUI tmp = txtObj.AddComponent<TextMeshProUGUI>();
+        tmp.text = "✕";
+        tmp.fontSize = 20;
+        tmp.fontStyle = FontStyles.Bold;
+        tmp.color = new Color(0.95f, 0.95f, 1f, 0.95f);
+        tmp.alignment = TextAlignmentOptions.Center;
+
+        return closeObj;
     }
 }

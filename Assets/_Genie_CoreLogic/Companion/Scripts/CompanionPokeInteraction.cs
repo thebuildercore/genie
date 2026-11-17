@@ -27,6 +27,15 @@ public class CompanionPokeInteraction : MonoBehaviour
     [Tooltip("Distance the robot steps backward on the 3rd poke to escape the player's hand.")]
     public float escapeStepDistance = 0.85f;
 
+    [Header("Quest 3 / VR Hand & Controller Proximity")]
+    [Tooltip("Distance in meters to trigger a poke when the player touches or reaches towards the robot.")]
+    public float vrPokeDistanceThreshold = 0.30f;
+    private Transform leftHandAnchor;
+    private Transform rightHandAnchor;
+    private bool wasLeftNear = false;
+    private bool wasRightNear = false;
+    private float lastHandSearchTime = 0f;
+
     [Header("Debug Status (Read-Only)")]
     [SerializeField] private int currentPokeCount = 0;
     [SerializeField] private bool isReacting = false;
@@ -87,6 +96,74 @@ public class CompanionPokeInteraction : MonoBehaviour
         {
             currentPokeCount = 0;
             Debug.Log("CompanionPoke: Cooldown reached, poke counter reset to 0.");
+        }
+
+        // VR Hand / Controller Proximity Check (Quest 3)
+        CheckVRProximityPoke();
+    }
+
+    private void CheckVRProximityPoke()
+    {
+        if (isReacting) return;
+
+        // Periodically refresh hand anchors if null
+        if ((leftHandAnchor == null || rightHandAnchor == null) && Time.time - lastHandSearchTime > 2.0f)
+        {
+            lastHandSearchTime = Time.time;
+            FindVRHandAnchors();
+        }
+
+        Vector3 robotCenter = transform.position + Vector3.up * 0.15f;
+
+        if (rightHandAnchor != null)
+        {
+            float dist = Vector3.Distance(rightHandAnchor.position, robotCenter);
+            bool isNear = dist <= vrPokeDistanceThreshold;
+            if (isNear && !wasRightNear)
+            {
+                Debug.Log($"CompanionPoke: Quest 3 Right Hand/Controller poked companion at {dist:F2}m!");
+                OnCompanionPoked();
+            }
+            wasRightNear = isNear;
+        }
+
+        if (leftHandAnchor != null)
+        {
+            float dist = Vector3.Distance(leftHandAnchor.position, robotCenter);
+            bool isNear = dist <= vrPokeDistanceThreshold;
+            if (isNear && !wasLeftNear)
+            {
+                Debug.Log($"CompanionPoke: Quest 3 Left Hand/Controller poked companion at {dist:F2}m!");
+                OnCompanionPoked();
+            }
+            wasLeftNear = isNear;
+        }
+    }
+
+    private void FindVRHandAnchors()
+    {
+        var allTransforms = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
+        foreach (var t in allTransforms)
+        {
+            if (rightHandAnchor == null && (t.name == "RightHandOnControllerAnchor" || t.name == "RightHandAnchor" || t.name == "RightHandAnchorDetached" || t.name == "RightControllerInHandAnchor"))
+            {
+                rightHandAnchor = t;
+            }
+            if (leftHandAnchor == null && (t.name == "LeftHandOnControllerAnchor" || t.name == "LeftHandAnchor" || t.name == "LeftHandAnchorDetached" || t.name == "LeftControllerInHandAnchor"))
+            {
+                leftHandAnchor = t;
+            }
+        }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (isReacting) return;
+        string n = other.gameObject.name.ToLower();
+        if (n.Contains("hand") || n.Contains("controller") || n.Contains("finger") || n.Contains("poke") || n.Contains("grab"))
+        {
+            Debug.Log($"CompanionPoke: Physical VR TriggerEnter from '{other.gameObject.name}'!");
+            OnCompanionPoked();
         }
     }
 
