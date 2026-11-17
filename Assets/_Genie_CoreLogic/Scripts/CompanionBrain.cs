@@ -17,10 +17,11 @@ public class CompanionBrain : MonoBehaviour
     public Animator companionAnimator;
     public Transform rightHandBone;
 
-    public float moveSpeed = 2.5f;
-    public float rotationSpeed = 8.0f;
+    public float moveSpeed = 0.85f;
+    public float rotationSpeed = 6.0f;
 
     private NavMeshAgent agent;
+    private Rigidbody rb;
     private Vector3 homePosition;
 
     [HideInInspector]
@@ -28,8 +29,23 @@ public class CompanionBrain : MonoBehaviour
 
     void Start()
     {
-        agent = GetComponent<NavMeshAgent>();
         homePosition = transform.position;
+
+        agent = GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.speed = moveSpeed;
+            agent.acceleration = 3.5f;
+            agent.angularSpeed = 160f;
+        }
+
+        // Prevent physics/gravity from fighting NavMesh and launching or dropping the robot into the void
+        rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            rb.isKinematic = true;
+            rb.useGravity = false;
+        }
 
         // Auto-attach Companion modules if missing
         if (GetComponent<CompanionPokeInteraction>() == null)
@@ -67,6 +83,19 @@ public class CompanionBrain : MonoBehaviour
 
     void Update()
     {
+        // Safety guard: prevent model from falling through floor/disappearing in both PC and VR
+        if (transform.position.y < homePosition.y - 0.35f)
+        {
+            if (agent != null && agent.enabled && agent.isOnNavMesh)
+            {
+                agent.Warp(homePosition);
+            }
+            else
+            {
+                transform.position = homePosition;
+            }
+        }
+
         switch (currentState) 
         {
             case CompanionState.Idle:

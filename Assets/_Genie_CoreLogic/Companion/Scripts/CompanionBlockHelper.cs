@@ -36,7 +36,7 @@ public class CompanionBlockHelper : MonoBehaviour
 
     [Header("Behavior Tuning")]
     [Tooltip("Movement speed while carrying or walking to blocks.")]
-    public float moveSpeed = 2.4f;
+    public float moveSpeed = 0.85f;
 
     [Tooltip("Maximum height the robot can comfortably reach to place a block.")]
     public float maxReachHeight = 0.55f;
@@ -635,8 +635,18 @@ public class CompanionBlockHelper : MonoBehaviour
 
     private IEnumerator WalkToPosition(Vector3 destination, float stopDist)
     {
-        float timeout = 4.5f;
+        float timeout = 8.0f;
         float elapsed = 0f;
+
+        if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
+        {
+            navAgent.speed = moveSpeed;
+            navAgent.isStopped = false;
+            navAgent.stoppingDistance = stopDist;
+            navAgent.SetDestination(destination);
+        }
+
+        Quaternion lastTargetRot = transform.rotation;
 
         while (elapsed < timeout)
         {
@@ -653,17 +663,13 @@ public class CompanionBlockHelper : MonoBehaviour
             dir.y = 0f;
             if (dir.sqrMagnitude > 0.01f)
             {
-                Quaternion targetRot = Quaternion.LookRotation(dir.normalized);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 10f);
+                lastTargetRot = Quaternion.LookRotation(dir.normalized);
+                // Cute rhythmic walking waddle step
+                float waddle = Mathf.Sin(elapsed * 10f) * 2.5f;
+                transform.rotation = Quaternion.Slerp(transform.rotation, lastTargetRot * Quaternion.Euler(0f, 0f, waddle), Time.deltaTime * 10f);
             }
 
-            if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
-            {
-                navAgent.isStopped = false;
-                navAgent.stoppingDistance = stopDist;
-                navAgent.SetDestination(destination);
-            }
-            else
+            if (navAgent == null || !navAgent.enabled || !navAgent.isOnNavMesh)
             {
                 transform.position = Vector3.MoveTowards(cur, destination, moveSpeed * Time.deltaTime);
             }
@@ -675,6 +681,8 @@ public class CompanionBlockHelper : MonoBehaviour
 
             yield return null;
         }
+
+        transform.rotation = lastTargetRot;
 
         if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
         {

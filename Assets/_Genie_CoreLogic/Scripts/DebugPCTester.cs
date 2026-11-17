@@ -7,6 +7,16 @@ public class DebugPCTester : MonoBehaviour
     public CompanionDizzyShake dizzyModule;
     public CompanionHighFive highFiveModule;
     public CompanionBlockHelper blockHelper;
+
+    [Header("Camera & Testing Perspective")]
+    [Tooltip("If true, automatically adjusts the camera position up and back in PC mode to frame the table and robot perfectly.")]
+    public bool autoFrameCameraForPC = true;
+    public Vector3 pcCameraPosition = new Vector3(0.1f, 1.15f, -0.65f);
+    public Vector3 pcCameraRotation = new Vector3(18f, 0f, 0f);
+
+    [Header("Intro Flow")]
+    [Tooltip("If true, skips the intro card and opens straight into the game.")]
+    public bool skipIntroStraightToGame = false;
     
 #if UNITY_EDITOR || UNITY_STANDALONE
     void Start()
@@ -34,6 +44,40 @@ public class DebugPCTester : MonoBehaviour
         if (blockHelper == null)
         {
             blockHelper = Object.FindFirstObjectByType<CompanionBlockHelper>();
+        }
+
+        // Adjust camera position in PC editor so table and robot are framed cleanly
+        if (autoFrameCameraForPC && Application.isEditor)
+        {
+            AdjustCameraForPC();
+        }
+
+        if (skipIntroStraightToGame && introManager != null)
+        {
+            if (introManager.enterArenaPanel != null) introManager.enterArenaPanel.SetActive(false);
+            if (introManager.gameSelectionPanel != null) introManager.gameSelectionPanel.SetActive(false);
+            if (introManager.subtitlePanel != null) introManager.subtitlePanel.SetActive(false);
+        }
+    }
+
+    private void AdjustCameraForPC()
+    {
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            Transform targetTr = cam.transform;
+            // Check if inside OVRCameraRig or TrackingSpace
+            if (targetTr.parent != null && targetTr.parent.name.Contains("TrackingSpace"))
+            {
+                targetTr = targetTr.parent.parent; // OVRCameraRig root
+            }
+            else if (targetTr.parent != null)
+            {
+                targetTr = targetTr.parent;
+            }
+
+            targetTr.position = pcCameraPosition;
+            targetTr.eulerAngles = pcCameraRotation;
         }
     }
 

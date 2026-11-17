@@ -29,7 +29,7 @@ public class CompanionHighFive : MonoBehaviour
 
     [Header("Movement & Jump Tuning")]
     [Tooltip("Movement speed when walking towards the player's hand.")]
-    public float walkSpeed = 2.4f;
+    public float walkSpeed = 0.85f;
 
     [Tooltip("Horizontal stopping distance from the hand position before jumping.")]
     public float stopDistance = 0.5f;
@@ -191,8 +191,9 @@ public class CompanionHighFive : MonoBehaviour
         Vector3 targetFloorPos = floorHandPos + approachDir * stopDistance;
 
         // 2. Walk over to target position
-        float walkTimeout = 4.0f;
+        float walkTimeout = 8.0f;
         float elapsedWalk = 0f;
+        Quaternion lastWalkRot = transform.rotation;
 
         while (elapsedWalk < walkTimeout)
         {
@@ -205,18 +206,20 @@ public class CompanionHighFive : MonoBehaviour
                 break;
             }
 
-            // Face target
+            // Face target with cute walking waddle
             Vector3 moveDir = (targetFloorPos - currentPos);
             moveDir.y = 0f;
             if (moveDir.sqrMagnitude > 0.01f)
             {
-                Quaternion targetRot = Quaternion.LookRotation(moveDir.normalized);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 10f);
+                lastWalkRot = Quaternion.LookRotation(moveDir.normalized);
+                float waddle = Mathf.Sin(elapsedWalk * 10f) * 2.5f;
+                transform.rotation = Quaternion.Slerp(transform.rotation, lastWalkRot * Quaternion.Euler(0f, 0f, waddle), Time.deltaTime * 10f);
             }
 
             // Move
             if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
             {
+                navAgent.speed = walkSpeed;
                 navAgent.isStopped = false;
                 navAgent.stoppingDistance = 0.1f;
                 navAgent.SetDestination(targetFloorPos);
@@ -233,6 +236,8 @@ public class CompanionHighFive : MonoBehaviour
 
             yield return null;
         }
+
+        transform.rotation = lastWalkRot;
 
         // Stop moving
         if (navAgent != null && navAgent.enabled && navAgent.isOnNavMesh)
