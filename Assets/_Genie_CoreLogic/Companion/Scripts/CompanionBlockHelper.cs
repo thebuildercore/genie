@@ -193,6 +193,11 @@ public class CompanionBlockHelper : MonoBehaviour
             soundHappyChirp = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "robot_happy_chirp.wav");
         }
 #endif
+        if (soundSadAww == null) soundSadAww = Resources.Load<AudioClip>("CompanionAudio/robot_sad_aww");
+        if (soundStruggleHeavy == null) soundStruggleHeavy = Resources.Load<AudioClip>("CompanionAudio/robot_struggle_heavy");
+        if (soundFallOof == null) soundFallOof = Resources.Load<AudioClip>("CompanionAudio/robot_fall_oof");
+        if (soundBlockDrop == null) soundBlockDrop = Resources.Load<AudioClip>("CompanionAudio/block_drop_thud");
+        if (soundHappyChirp == null) soundHappyChirp = Resources.Load<AudioClip>("CompanionAudio/robot_happy_chirp");
     }
 
     /// <summary>

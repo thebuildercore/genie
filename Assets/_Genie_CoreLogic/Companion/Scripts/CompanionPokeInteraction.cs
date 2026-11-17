@@ -57,10 +57,11 @@ public class CompanionPokeInteraction : MonoBehaviour
             if (audioSource == null)
             {
                 audioSource = gameObject.AddComponent<AudioSource>();
-                audioSource.spatialBlend = 0.85f; // 3D spatial audio in XR
-                audioSource.playOnAwake = false;
             }
         }
+        audioSource.volume = 1.0f;
+        audioSource.spatialBlend = 0.25f; // Crystal clear 2D/3D blend in headset
+        audioSource.playOnAwake = false;
 
         originalLocalScale = transform.localScale;
 
@@ -113,15 +114,19 @@ public class CompanionPokeInteraction : MonoBehaviour
             FindVRHandAnchors();
         }
 
-        Vector3 robotCenter = transform.position + Vector3.up * 0.15f;
+        Vector3 headPos = transform.position + Vector3.up * 0.38f;
+        Vector3 bodyPos = transform.position + Vector3.up * 0.18f;
 
         if (rightHandAnchor != null)
         {
-            float dist = Vector3.Distance(rightHandAnchor.position, robotCenter);
-            bool isNear = dist <= vrPokeDistanceThreshold;
+            float distHead = Vector3.Distance(rightHandAnchor.position, headPos);
+            float distBody = Vector3.Distance(rightHandAnchor.position, bodyPos);
+            float minDist = Mathf.Min(distHead, distBody);
+
+            bool isNear = minDist <= vrPokeDistanceThreshold;
             if (isNear && !wasRightNear)
             {
-                Debug.Log($"CompanionPoke: Quest 3 Right Hand/Controller poked companion at {dist:F2}m!");
+                Debug.Log($"CompanionPoke: Quest 3 Right Hand tapped companion (distHead={distHead:F2}m, distBody={distBody:F2}m)!");
                 OnCompanionPoked();
             }
             wasRightNear = isNear;
@@ -129,11 +134,14 @@ public class CompanionPokeInteraction : MonoBehaviour
 
         if (leftHandAnchor != null)
         {
-            float dist = Vector3.Distance(leftHandAnchor.position, robotCenter);
-            bool isNear = dist <= vrPokeDistanceThreshold;
+            float distHead = Vector3.Distance(leftHandAnchor.position, headPos);
+            float distBody = Vector3.Distance(leftHandAnchor.position, bodyPos);
+            float minDist = Mathf.Min(distHead, distBody);
+
+            bool isNear = minDist <= vrPokeDistanceThreshold;
             if (isNear && !wasLeftNear)
             {
-                Debug.Log($"CompanionPoke: Quest 3 Left Hand/Controller poked companion at {dist:F2}m!");
+                Debug.Log($"CompanionPoke: Quest 3 Left Hand tapped companion (distHead={distHead:F2}m, distBody={distBody:F2}m)!");
                 OnCompanionPoked();
             }
             wasLeftNear = isNear;
@@ -145,11 +153,12 @@ public class CompanionPokeInteraction : MonoBehaviour
         var allTransforms = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
         foreach (var t in allTransforms)
         {
-            if (rightHandAnchor == null && (t.name == "RightHandOnControllerAnchor" || t.name == "RightHandAnchor" || t.name == "RightHandAnchorDetached" || t.name == "RightControllerInHandAnchor"))
+            string n = t.name.ToLower();
+            if (rightHandAnchor == null && (n.Contains("r_index") || n.Contains("righthandoncontroller") || n.Contains("righthandanchor") || n.Contains("rightcontrollerinhand")))
             {
                 rightHandAnchor = t;
             }
-            if (leftHandAnchor == null && (t.name == "LeftHandOnControllerAnchor" || t.name == "LeftHandAnchor" || t.name == "LeftHandAnchorDetached" || t.name == "LeftControllerInHandAnchor"))
+            if (leftHandAnchor == null && (n.Contains("l_index") || n.Contains("lefthandoncontroller") || n.Contains("lefthandanchor") || n.Contains("leftcontrollerinhand")))
             {
                 leftHandAnchor = t;
             }
@@ -173,40 +182,35 @@ public class CompanionPokeInteraction : MonoBehaviour
         if (soundOuch == null)
         {
             soundOuch = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_ouch.wav");
-            if (soundOuch == null)
-            {
-                soundOuch = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_ouch.wav");
-            }
         }
         if (soundGiggle == null)
         {
             soundGiggle = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_giggle.wav");
-            if (soundGiggle == null)
-            {
-                soundGiggle = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_giggle.wav");
-            }
         }
         if (soundAnnoyed == null)
         {
             soundAnnoyed = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_annoyed.wav");
-            if (soundAnnoyed == null)
-            {
-                soundAnnoyed = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_annoyed.wav");
-            }
         }
 #endif
+        if (soundOuch == null) soundOuch = Resources.Load<AudioClip>("CompanionAudio/robot_ouch");
+        if (soundGiggle == null) soundGiggle = Resources.Load<AudioClip>("CompanionAudio/robot_giggle");
+        if (soundAnnoyed == null) soundAnnoyed = Resources.Load<AudioClip>("CompanionAudio/robot_annoyed");
     }
 
     private void EnsurePokeColliderExists()
     {
-        Collider col = GetComponent<Collider>();
-        if (col == null)
+        Transform existingHeadTrigger = transform.Find("CompanionHeadTrigger");
+        if (existingHeadTrigger == null)
         {
-            CapsuleCollider capsule = gameObject.AddComponent<CapsuleCollider>();
-            capsule.height = 1.2f;
-            capsule.radius = 0.35f;
-            capsule.center = new Vector3(0f, 0.6f, 0f);
-            capsule.isTrigger = false;
+            GameObject triggerObj = new GameObject("CompanionHeadTrigger");
+            triggerObj.transform.SetParent(transform, false);
+            triggerObj.transform.localPosition = new Vector3(0f, 1.8f, 0f); // Head level in local space
+            SphereCollider sphere = triggerObj.AddComponent<SphereCollider>();
+            sphere.radius = 1.1f;
+            sphere.isTrigger = true;
+
+            var forwarder = triggerObj.AddComponent<CompanionTriggerForwarder>();
+            forwarder.pokeInteraction = this;
         }
     }
 
@@ -400,10 +404,18 @@ public class CompanionPokeInteraction : MonoBehaviour
 
     private void PlaySound(AudioClip clip, float pitch)
     {
+        if (clip == null) LoadDefaultAudioClips();
         if (audioSource != null && clip != null)
         {
             audioSource.pitch = pitch;
-            audioSource.PlayOneShot(clip);
+            audioSource.volume = 1.0f;
+            audioSource.spatialBlend = 0.25f;
+            audioSource.PlayOneShot(clip, 1.0f);
+            Debug.Log($"CompanionPoke: Successfully played sound clip '{clip.name}'!");
+        }
+        else
+        {
+            Debug.LogWarning($"CompanionPoke: Cannot play sound! audioSource={audioSource}, clip={clip}");
         }
     }
 
@@ -411,5 +423,23 @@ public class CompanionPokeInteraction : MonoBehaviour
     private void OnMouseDown()
     {
         OnCompanionPoked();
+    }
+}
+
+public class CompanionTriggerForwarder : MonoBehaviour
+{
+    public CompanionPokeInteraction pokeInteraction;
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (pokeInteraction != null)
+        {
+            string n = other.gameObject.name.ToLower();
+            if (n.Contains("hand") || n.Contains("controller") || n.Contains("finger") || n.Contains("poke") || n.Contains("grab"))
+            {
+                Debug.Log($"CompanionTriggerForwarder: Head tap detected from '{other.gameObject.name}'!");
+                pokeInteraction.OnCompanionPoked();
+            }
+        }
     }
 }

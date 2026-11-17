@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Oculus.Interaction;
 
 /// <summary>
 /// Implements "The Dizzy Shake" interaction:
@@ -18,10 +19,10 @@ public class CompanionDizzyShake : MonoBehaviour
 
     [Header("Dizzy Detection Settings")]
     [Tooltip("Velocity threshold (m/s) above which rapid movement counts as shaking.")]
-    public float shakeVelocityThreshold = 1.8f;
+    public float shakeVelocityThreshold = 0.9f;
 
     [Tooltip("Angular velocity threshold (deg/s) for rotational spinning.")]
-    public float shakeAngularThreshold = 220f;
+    public float shakeAngularThreshold = 140f;
 
     [Tooltip("Duration of the dizzy wobble recovery in seconds.")]
     public float dizzyRecoveryDuration = 3.6f;
@@ -35,6 +36,7 @@ public class CompanionDizzyShake : MonoBehaviour
     private Vector3 lastPosition;
     private Quaternion lastRotation;
     private GameEventManager gameManager;
+    private Grabbable grabbable;
 
     private void Awake()
     {
@@ -49,10 +51,13 @@ public class CompanionDizzyShake : MonoBehaviour
             if (audioSource == null)
             {
                 audioSource = gameObject.AddComponent<AudioSource>();
-                audioSource.spatialBlend = 0.85f;
-                audioSource.playOnAwake = false;
             }
         }
+        audioSource.volume = 1.0f;
+        audioSource.spatialBlend = 0.25f; // Crystal clear 2D/3D blend in headset
+        audioSource.playOnAwake = false;
+
+        grabbable = GetComponent<Grabbable>();
 
         LoadDefaultAudio();
     }
@@ -88,17 +93,32 @@ public class CompanionDizzyShake : MonoBehaviour
         if (soundDizzy == null)
         {
             soundDizzy = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_dizzy.wav");
-            if (soundDizzy == null)
-            {
-                soundDizzy = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_dizzy.wav");
-            }
         }
 #endif
+        if (soundDizzy == null)
+        {
+            soundDizzy = Resources.Load<AudioClip>("CompanionAudio/robot_dizzy");
+        }
     }
 
     private void Update()
     {
         if (isRecovering) return;
+
+        // Check Oculus Interaction Grabbable state directly
+        if (grabbable != null)
+        {
+            bool wasHeld = isHeldInHand;
+            isHeldInHand = grabbable.SelectingPointsCount > 0;
+            if (isHeldInHand && !wasHeld)
+            {
+                HandleObjectGrabbed();
+            }
+            else if (!isHeldInHand && wasHeld)
+            {
+                HandleObjectReleased();
+            }
+        }
 
         // Calculate motion velocities
         float dt = Time.deltaTime;
@@ -108,21 +128,26 @@ public class CompanionDizzyShake : MonoBehaviour
             float angularVel = Quaternion.Angle(transform.rotation, lastRotation) / dt;
 
             // Detect fast movement if held in hand or if rapid motion occurs
-            if (isHeldInHand || linearVel.magnitude > (shakeVelocityThreshold * 1.5f))
+            if (isHeldInHand || linearVel.magnitude > shakeVelocityThreshold)
             {
                 if (linearVel.magnitude > shakeVelocityThreshold || angularVel > shakeAngularThreshold)
                 {
-                    accumulatedDizzyEnergy += dt * 2.5f;
-                    if (accumulatedDizzyEnergy > 0.4f)
+                    accumulatedDizzyEnergy += dt * 3.5f;
+                    if (accumulatedDizzyEnergy > 0.35f)
                     {
                         isDizzyPending = true;
                     }
                 }
             }
+            else if (isDizzyPending)
+            {
+                // Stopped shaking while standing on floor or table!
+                accumulatedDizzyEnergy = 0f;
+                StartCoroutine(DizzyWobbleRoutine());
+            }
             else
             {
-                // Decay energy slowly if not being shaken
-                accumulatedDizzyEnergy = Mathf.Max(0f, accumulatedDizzyEnergy - dt * 0.5f);
+                accumulatedDizzyEnergy = Mathf.Max(0f, accumulatedDizzyEnergy - dt * 0.8f);
             }
         }
 
@@ -183,10 +208,18 @@ public class CompanionDizzyShake : MonoBehaviour
         }
 
         // Play the cute cartoon dizzy sound
+        if (soundDizzy == null) LoadDefaultAudio();
         if (audioSource != null && soundDizzy != null)
         {
+            audioSource.volume = 1.0f;
+            audioSource.spatialBlend = 0.25f;
             audioSource.pitch = 1.0f;
-            audioSource.PlayOneShot(soundDizzy);
+            audioSource.PlayOneShot(soundDizzy, 1.0f);
+            Debug.Log("CompanionDizzyShake: Playing robot_dizzy sound!");
+        }
+        else
+        {
+            Debug.LogWarning($"CompanionDizzyShake: Cannot play sound! audioSource={audioSource}, soundDizzy={soundDizzy}");
         }
 
         Quaternion baseRotation = transform.rotation;

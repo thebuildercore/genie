@@ -191,20 +191,14 @@ public class CompanionHighFive : MonoBehaviour
         if (soundSmack == null)
         {
             soundSmack = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/highfive_smack.wav");
-            if (soundSmack == null)
-            {
-                soundSmack = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/highfive_smack.wav");
-            }
         }
         if (soundHappyChirp == null)
         {
             soundHappyChirp = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/_Genie_CoreLogic/Companion/Audio/robot_happy_chirp.wav");
-            if (soundHappyChirp == null)
-            {
-                soundHappyChirp = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CoreLogic/Companion/Audio/robot_happy_chirp.wav");
-            }
         }
 #endif
+        if (soundSmack == null) soundSmack = Resources.Load<AudioClip>("CompanionAudio/highfive_smack");
+        if (soundHappyChirp == null) soundHappyChirp = Resources.Load<AudioClip>("CompanionAudio/robot_happy_chirp");
     }
 
     /// <summary>
