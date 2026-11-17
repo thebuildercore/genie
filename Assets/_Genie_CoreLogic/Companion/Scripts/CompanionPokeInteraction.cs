@@ -157,11 +157,25 @@ public class CompanionPokeInteraction : MonoBehaviour
             if (rightHandAnchor == null && (n.Contains("r_index") || n.Contains("righthandoncontroller") || n.Contains("righthandanchor") || n.Contains("rightcontrollerinhand")))
             {
                 rightHandAnchor = t;
+                EnsureHandCollider(t);
             }
             if (leftHandAnchor == null && (n.Contains("l_index") || n.Contains("lefthandoncontroller") || n.Contains("lefthandanchor") || n.Contains("leftcontrollerinhand")))
             {
                 leftHandAnchor = t;
+                EnsureHandCollider(t);
             }
+        }
+    }
+
+    private void EnsureHandCollider(Transform handTr)
+    {
+        if (handTr == null) return;
+        Collider col = handTr.GetComponent<Collider>();
+        if (col == null)
+        {
+            SphereCollider sc = handTr.gameObject.AddComponent<SphereCollider>();
+            sc.radius = 0.08f;
+            sc.isTrigger = true;
         }
     }
 
