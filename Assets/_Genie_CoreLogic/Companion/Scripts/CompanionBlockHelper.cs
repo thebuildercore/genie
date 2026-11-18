@@ -180,9 +180,9 @@ public class CompanionBlockHelper : MonoBehaviour
 
     private void TrackUserAndBlockActivity()
     {
-        // 1. Refresh list of puzzle blocks periodically
+        // 1. Refresh list of puzzle blocks only when empty or every 10 seconds (prevents GC lag)
         blockScanTimer += Time.deltaTime;
-        if (blockScanTimer >= 1.0f)
+        if (blockScanTimer >= 10.0f || trackedBlocks.Count == 0)
         {
             blockScanTimer = 0f;
             RefreshTrackedBlocks();

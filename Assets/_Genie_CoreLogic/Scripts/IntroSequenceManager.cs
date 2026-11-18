@@ -71,6 +71,7 @@ public class IntroSequenceManager : MonoBehaviour
 
     private void Awake()
     {
+        EnsureSingleEventSystem();
         ConfigureCameraForPassthrough();
 
         if (enterArenaPanel != null)
@@ -101,6 +102,8 @@ public class IntroSequenceManager : MonoBehaviour
 
     private void Start()
     {
+        EnsureSingleEventSystem();
+
         if (gameManager == null)
         {
             gameManager = Object.FindFirstObjectByType<GameEventManager>();
@@ -125,6 +128,70 @@ public class IntroSequenceManager : MonoBehaviour
         if (subtitlePanel != null) subtitlePanel.SetActive(false);
 
         StartCoroutine(PlayIntroSequence());
+    }
+
+    private void Update()
+    {
+        // Periodic check to guarantee exactly ONE EventSystem in scene
+        EnsureSingleEventSystem();
+
+        // PC Mouse click fallback for Game Selection Panel
+        if (Input.GetMouseButtonDown(0))
+        {
+            HandlePCMouseInput();
+        }
+    }
+
+    private void HandlePCMouseInput()
+    {
+        if (gameSelectionPanel == null || !gameSelectionPanel.activeSelf) return;
+
+        Camera cam = Camera.main;
+        if (cam == null) return;
+
+        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+        RaycastHit[] hits = Physics.RaycastAll(ray, 20f);
+        foreach (var h in hits)
+        {
+            string n = h.collider.gameObject.name.ToLower();
+            if (n.Contains("cocasnap"))
+            {
+                Debug.Log("IntroSequenceManager: PC Mouse clicked Cocasnap card!");
+                LaunchCocasnap();
+                return;
+            }
+            if (n.Contains("beerpong"))
+            {
+                Debug.Log("IntroSequenceManager: PC Mouse clicked Beer Pong card!");
+                LaunchBeerPong();
+                return;
+            }
+        }
+    }
+
+    public static void EnsureSingleEventSystem()
+    {
+        var systems = Object.FindObjectsByType<UnityEngine.EventSystems.EventSystem>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        if (systems == null || systems.Length <= 1) return;
+
+        UnityEngine.EventSystems.EventSystem primary = null;
+        for (int i = 0; i < systems.Length; i++)
+        {
+            if (systems[i].gameObject.activeInHierarchy && primary == null)
+            {
+                primary = systems[i];
+            }
+        }
+        if (primary == null && systems.Length > 0) primary = systems[0];
+
+        for (int i = 0; i < systems.Length; i++)
+        {
+            if (systems[i] != null && systems[i] != primary)
+            {
+                Debug.Log($"[IntroSequenceManager] Deactivating duplicate EventSystem '{systems[i].gameObject.name}' to enforce exactly 1 EventSystem.");
+                systems[i].gameObject.SetActive(false);
+            }
+        }
     }
 
     private void OnDestroy()
@@ -218,29 +285,33 @@ public class IntroSequenceManager : MonoBehaviour
     {
         if (panel == null) return;
 
+        EnsureSingleEventSystem();
+
         Canvas canvas = panel.GetComponentInParent<Canvas>();
         if (canvas != null)
         {
-            if (canvas.renderMode == RenderMode.WorldSpace && canvas.worldCamera == null)
+            if (canvas.renderMode == RenderMode.WorldSpace)
             {
                 canvas.worldCamera = Camera.main;
             }
 
             CanvasScaler scaler = canvas.GetComponent<CanvasScaler>();
-            if (scaler != null && scaler.dynamicPixelsPerUnit < 3f)
+            if (scaler != null)
             {
-                scaler.dynamicPixelsPerUnit = 3f;
+                scaler.dynamicPixelsPerUnit = 4f;
             }
 
-            if (canvas.GetComponent<GraphicRaycaster>() == null)
+            GraphicRaycaster gr = canvas.GetComponent<GraphicRaycaster>();
+            if (gr == null)
             {
-                canvas.gameObject.AddComponent<GraphicRaycaster>();
+                gr = canvas.gameObject.AddComponent<GraphicRaycaster>();
             }
+            gr.blockingObjects = GraphicRaycaster.BlockingObjects.None;
 
             canvas.overrideSorting = true;
-            if (canvas.sortingOrder < 5)
+            if (canvas.sortingOrder < 10)
             {
-                canvas.sortingOrder = 5;
+                canvas.sortingOrder = 10;
             }
         }
     }
@@ -257,10 +328,7 @@ public class IntroSequenceManager : MonoBehaviour
         Transform existingSub = canvasTr.Find("KinexusSubtitleBar");
         if (existingSub != null)
         {
-            subtitlePanel = existingSub.gameObject;
-            subtitlePanel.transform.localEulerAngles = subtitleRotation;
-            subtitleText = subtitlePanel.GetComponentInChildren<TextMeshProUGUI>();
-            return;
+            DestroyImmediate(existingSub.gameObject);
         }
 
         GameObject subObj = new GameObject("KinexusSubtitleBar");
@@ -270,14 +338,14 @@ public class IntroSequenceManager : MonoBehaviour
         subRt.anchorMax = new Vector2(0.5f, 0.5f);
         subRt.pivot = new Vector2(0.5f, 0.5f);
         subRt.anchoredPosition = new Vector2(0f, -240f);
-        subRt.sizeDelta = new Vector2(750f, 65f);
+        subRt.sizeDelta = new Vector2(880f, 85f);
         subRt.localEulerAngles = subtitleRotation; // Fixes mirrored view
 
         Image subBg = subObj.AddComponent<Image>();
-        subBg.color = new Color(0.04f, 0.08f, 0.14f, 0.85f);
+        subBg.color = new Color(0.01f, 0.02f, 0.05f, 0.92f); // High-contrast crisp black backdrop
 
         Outline subOutline = subObj.AddComponent<Outline>();
-        subOutline.effectColor = new Color(0.48f, 0.75f, 1.0f, 0.70f);
+        subOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.95f); // Glowing white border
         subOutline.effectDistance = new Vector2(2f, -2f);
 
         GameObject txtObj = new GameObject("SubtitleText");
@@ -289,9 +357,11 @@ public class IntroSequenceManager : MonoBehaviour
         txtRt.anchoredPosition = Vector2.zero;
 
         subtitleText = txtObj.AddComponent<TextMeshProUGUI>();
-        subtitleText.fontSize = 20;
+        subtitleText.fontSize = 28;
+        subtitleText.fontStyle = FontStyles.Bold;
         subtitleText.alignment = TextAlignmentOptions.Center;
         subtitleText.color = Color.white;
+        subtitleText.enableWordWrapping = true;
         subtitleText.text = continueSubtitleText;
 
         subtitlePanel = subObj;
@@ -505,14 +575,14 @@ public class IntroSequenceManager : MonoBehaviour
     }
 
     // =========================================================
-    // SCREEN 2: DISCOVER YOUR NEXT GAME (Auto-creates panel if null)
+    // SCREEN 2: GAME SELECTION SCREEN (2 CARDS: COCASNAP & BEER PONG)
     // =========================================================
 
     [ContextMenu("Create & Build Game Selection Panel")]
     public void BuildDiscoverGamesUIContextMenu()
     {
         EnsureDiscoverGamesLayoutExists(forceRebuild: true);
-        Debug.Log("Kinexus UI: Created & Built Discover Games Screen!");
+        Debug.Log("Kinexus UI: Created & Built Game Selection Screen with 2 Cards!");
     }
 
     public void EnsureDiscoverGamesLayoutExists(bool forceRebuild = false)
@@ -537,7 +607,7 @@ public class IntroSequenceManager : MonoBehaviour
                 rt.anchorMax = new Vector2(0.5f, 0.5f);
                 rt.pivot = new Vector2(0.5f, 0.5f);
                 rt.anchoredPosition = Vector2.zero;
-                rt.sizeDelta = new Vector2(1100f, 620f);
+                rt.sizeDelta = new Vector2(1100f, 640f);
 
                 Image img = newPanelObj.AddComponent<Image>();
                 img.color = Color.clear;
@@ -548,7 +618,7 @@ public class IntroSequenceManager : MonoBehaviour
         }
 
         Transform existingLayout = gameSelectionPanel.transform.Find("DiscoverGamesLayout");
-        Transform existingCocasnap = gameSelectionPanel.transform.Find("DiscoverGamesLayout/GameCardsCarousel/Card_Cocasnap");
+        Transform existingCocasnap = gameSelectionPanel.transform.Find("DiscoverGamesLayout/TwoCardsContainer/Card_Cocasnap");
         Transform existingClose = gameSelectionPanel.transform.Find("DiscoverCloseButton");
 
         if (existingLayout != null && existingCocasnap != null && existingClose != null && !forceRebuild) return;
@@ -559,7 +629,7 @@ public class IntroSequenceManager : MonoBehaviour
         RectTransform panelRt = gameSelectionPanel.GetComponent<RectTransform>();
         if (panelRt != null)
         {
-            panelRt.sizeDelta = new Vector2(1120f, 630f);
+            panelRt.sizeDelta = new Vector2(1100f, 640f);
         }
 
         GameObject root = new GameObject("DiscoverGamesLayout");
@@ -569,229 +639,69 @@ public class IntroSequenceManager : MonoBehaviour
         rootRt.anchorMax = Vector2.one;
         rootRt.sizeDelta = Vector2.zero;
 
-        // 1. Sidebar Dock (Glowing White Quest 3 theme)
-        CreateSidebar(root.transform);
+        // 1. Top Header (Luminous Glowy White Quest 3 theme)
+        CreateTopHeader(root.transform);
 
-        // 2. Top Bar (Glowing White Quest 3 theme)
-        CreateTopBar(root.transform);
+        // 2. Exactly TWO Game Cards (Cocasnap and Beer Pong)
+        CreateTwoGameCards(root.transform);
 
-        // 3. Carousel with Cocasnap & Beer Pong Game Cards
-        CreateGameCarousel(root.transform);
-
-        // 4. Bottom Widgets (Glowing White Quest 3 theme)
-        CreateBottomWidgets(root.transform);
-
-        // Close Button at top-right of Discover Games panel
+        // 3. Close Button at top-right of panel
         CreateCloseButton(gameSelectionPanel.transform, "DiscoverCloseButton", new Vector2(-28f, -28f), CloseGameSelectionPanel);
     }
 
-    private void CreateSidebar(Transform parent)
+    private void CreateTopHeader(Transform parent)
     {
-        GameObject sidebar = new GameObject("SidebarDock");
-        sidebar.transform.SetParent(parent, false);
-        RectTransform sbRt = sidebar.AddComponent<RectTransform>();
-        sbRt.anchorMin = new Vector2(0f, 0.5f);
-        sbRt.anchorMax = new Vector2(0f, 0.5f);
-        sbRt.pivot = new Vector2(0f, 0.5f);
-        sbRt.anchoredPosition = new Vector2(25f, 15f);
-        sbRt.sizeDelta = new Vector2(170f, 480f);
+        GameObject headerObj = new GameObject("TopHeader");
+        headerObj.transform.SetParent(parent, false);
+        RectTransform headerRt = headerObj.AddComponent<RectTransform>();
+        headerRt.anchorMin = new Vector2(0.5f, 1f);
+        headerRt.anchorMax = new Vector2(0.5f, 1f);
+        headerRt.pivot = new Vector2(0.5f, 1f);
+        headerRt.anchoredPosition = new Vector2(0f, -22f);
+        headerRt.sizeDelta = new Vector2(900f, 80f);
 
-        Image sbImg = sidebar.AddComponent<Image>();
-        sbImg.color = new Color(0.05f, 0.08f, 0.15f, 0.65f);
-
-        Outline sbOutline = sidebar.AddComponent<Outline>();
-        sbOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f); // Glowing white
-        sbOutline.effectDistance = new Vector2(2f, -2f);
-
-        GameObject logoObj = new GameObject("Logo");
-        logoObj.transform.SetParent(sidebar.transform, false);
-        RectTransform logoRt = logoObj.AddComponent<RectTransform>();
-        logoRt.anchorMin = new Vector2(0.5f, 1f);
-        logoRt.anchorMax = new Vector2(0.5f, 1f);
-        logoRt.pivot = new Vector2(0.5f, 1f);
-        logoRt.anchoredPosition = new Vector2(0f, -20f);
-        logoRt.sizeDelta = new Vector2(140f, 40f);
-
-        TextMeshProUGUI logoTmp = logoObj.AddComponent<TextMeshProUGUI>();
-        logoTmp.text = "\u2728 <b>KINEXUS</b>";
-        logoTmp.fontSize = 20;
-        logoTmp.color = Color.white;
-        logoTmp.alignment = TextAlignmentOptions.Center;
-
-        GameObject menuObj = new GameObject("MenuItems");
-        menuObj.transform.SetParent(sidebar.transform, false);
-        RectTransform menuRt = menuObj.AddComponent<RectTransform>();
-        menuRt.anchorMin = new Vector2(0.5f, 0.5f);
-        menuRt.anchorMax = new Vector2(0.5f, 0.5f);
-        menuRt.pivot = new Vector2(0.5f, 0.5f);
-        menuRt.anchoredPosition = new Vector2(0f, -10f);
-        menuRt.sizeDelta = new Vector2(140f, 340f);
-
-        VerticalLayoutGroup vlg = menuObj.AddComponent<VerticalLayoutGroup>();
-        vlg.spacing = 14f;
-        vlg.childAlignment = TextAnchor.UpperCenter;
-        vlg.childControlWidth = true;
-        vlg.childControlHeight = false;
-
-        CreateSidebarItem(menuObj.transform, "\uD83C\uDFE0 Home", isActive: false);
-        CreateSidebarItem(menuObj.transform, "\uD83C\uDFAE Games", isActive: true);
-        CreateSidebarItem(menuObj.transform, "\uD83C\uDFC6 Leaderboard", isActive: false);
-        CreateSidebarItem(menuObj.transform, "\u2B50 Rewards", isActive: false);
-        CreateSidebarItem(menuObj.transform, "\u2699\uFE0F Settings", isActive: false);
+        TextMeshProUGUI headerTmp = headerObj.AddComponent<TextMeshProUGUI>();
+        headerTmp.text = "<size=34><b><color=#FFFFFF>CHOOSE YOUR GAME</color></b></size>\n<size=17><color=#D0E4FF>Select an experience to enter with your companion robot \u2728</color></size>";
+        headerTmp.alignment = TextAlignmentOptions.Center;
     }
 
-    private void CreateSidebarItem(Transform parent, string label, bool isActive)
+    private void CreateTwoGameCards(Transform parent)
     {
-        GameObject item = new GameObject("Item_" + label);
-        item.transform.SetParent(parent, false);
-        RectTransform rt = item.AddComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(140f, 44f);
-
-        Image img = item.AddComponent<Image>();
-        img.color = isActive ? new Color(1.0f, 1.0f, 1.0f, 0.22f) : new Color(0.08f, 0.12f, 0.20f, 0.35f);
-
-        Outline outline = item.AddComponent<Outline>();
-        outline.effectColor = isActive ? new Color(1.0f, 1.0f, 1.0f, 0.95f) : new Color(1.0f, 1.0f, 1.0f, 0.35f);
-        outline.effectDistance = new Vector2(1.5f, -1.5f);
-
-        GameObject txtObj = new GameObject("Text");
-        txtObj.transform.SetParent(item.transform, false);
-        RectTransform txtRt = txtObj.AddComponent<RectTransform>();
-        txtRt.anchorMin = Vector2.zero;
-        txtRt.anchorMax = Vector2.one;
-        txtRt.sizeDelta = new Vector2(-16f, 0f);
-
-        TextMeshProUGUI tmp = txtObj.AddComponent<TextMeshProUGUI>();
-        tmp.text = label;
-        tmp.fontSize = 15;
-        tmp.color = isActive ? Color.white : new Color(0.85f, 0.92f, 1.0f, 0.85f);
-        tmp.alignment = TextAlignmentOptions.MidlineLeft;
-    }
-
-    private void CreateTopBar(Transform parent)
-    {
-        GameObject titleObj = new GameObject("TopTitle");
-        titleObj.transform.SetParent(parent, false);
-        RectTransform titleRt = titleObj.AddComponent<RectTransform>();
-        titleRt.anchorMin = new Vector2(0.55f, 1f);
-        titleRt.anchorMax = new Vector2(0.55f, 1f);
-        titleRt.pivot = new Vector2(0.5f, 1f);
-        titleRt.anchoredPosition = new Vector2(0f, -22f);
-        titleRt.sizeDelta = new Vector2(550f, 75f);
-
-        TextMeshProUGUI titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
-        titleTmp.text = "<size=32><b><color=#FFFFFF>Choose Your Arena \u2728</color></b></size>\n<size=15><color=#DCE8FF>Select a game below to enter</color></size>";
-        titleTmp.alignment = TextAlignmentOptions.Center;
-
-        GameObject searchObj = new GameObject("SearchBar");
-        searchObj.transform.SetParent(parent, false);
-        RectTransform searchRt = searchObj.AddComponent<RectTransform>();
-        searchRt.anchorMin = new Vector2(1f, 1f);
-        searchRt.anchorMax = new Vector2(1f, 1f);
-        searchRt.pivot = new Vector2(1f, 1f);
-        searchRt.anchoredPosition = new Vector2(-90f, -26f);
-        searchRt.sizeDelta = new Vector2(170f, 38f);
-
-        Image searchImg = searchObj.AddComponent<Image>();
-        searchImg.color = new Color(1.0f, 1.0f, 1.0f, 0.12f);
-
-        Outline searchOutline = searchObj.AddComponent<Outline>();
-        searchOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
-        searchOutline.effectDistance = new Vector2(1.5f, -1.5f);
-
-        GameObject sTxtObj = new GameObject("Text");
-        sTxtObj.transform.SetParent(searchObj.transform, false);
-        RectTransform sTxtRt = sTxtObj.AddComponent<RectTransform>();
-        sTxtRt.anchorMin = Vector2.zero;
-        sTxtRt.anchorMax = Vector2.one;
-        sTxtRt.sizeDelta = new Vector2(-20f, 0f);
-
-        TextMeshProUGUI sTmp = sTxtObj.AddComponent<TextMeshProUGUI>();
-        sTmp.text = "\uD83D\uDD0D Search games...";
-        sTmp.fontSize = 13;
-        sTmp.color = new Color(0.85f, 0.92f, 1.0f, 0.85f);
-        sTmp.alignment = TextAlignmentOptions.MidlineLeft;
-
-        GameObject profileObj = new GameObject("ProfileAvatar");
-        profileObj.transform.SetParent(parent, false);
-        RectTransform profRt = profileObj.AddComponent<RectTransform>();
-        profRt.anchorMin = new Vector2(1f, 1f);
-        profRt.anchorMax = new Vector2(1f, 1f);
-        profRt.pivot = new Vector2(1f, 1f);
-        profRt.anchoredPosition = new Vector2(-35f, -25f);
-        profRt.sizeDelta = new Vector2(40f, 40f);
-
-        Image profImg = profileObj.AddComponent<Image>();
-        profImg.color = new Color(1.0f, 1.0f, 1.0f, 0.15f);
-
-        Outline profOutline = profileObj.AddComponent<Outline>();
-        profOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
-        profOutline.effectDistance = new Vector2(1.5f, -1.5f);
-
-        GameObject pTxtObj = new GameObject("Icon");
-        pTxtObj.transform.SetParent(profileObj.transform, false);
-        RectTransform pTxtRt = pTxtObj.AddComponent<RectTransform>();
-        pTxtRt.anchorMin = Vector2.zero;
-        pTxtRt.anchorMax = Vector2.one;
-        pTxtRt.sizeDelta = Vector2.zero;
-
-        TextMeshProUGUI pTmp = pTxtObj.AddComponent<TextMeshProUGUI>();
-        pTmp.text = "\uD83D\uDC64";
-        pTmp.fontSize = 20;
-        pTmp.color = Color.white;
-        pTmp.alignment = TextAlignmentOptions.Center;
-    }
-
-    private void CreateGameCarousel(Transform parent)
-    {
-        GameObject carousel = new GameObject("GameCardsCarousel");
-        carousel.transform.SetParent(parent, false);
-        RectTransform carRt = carousel.AddComponent<RectTransform>();
-        carRt.anchorMin = new Vector2(0.57f, 0.5f);
-        carRt.anchorMax = new Vector2(0.57f, 0.5f);
-        carRt.pivot = new Vector2(0.5f, 0.5f);
-        carRt.anchoredPosition = new Vector2(0f, -10f);
-        carRt.sizeDelta = new Vector2(820f, 370f);
+        GameObject cardsContainer = new GameObject("TwoCardsContainer");
+        cardsContainer.transform.SetParent(parent, false);
+        RectTransform cRt = cardsContainer.AddComponent<RectTransform>();
+        cRt.anchorMin = new Vector2(0.5f, 0.5f);
+        cRt.anchorMax = new Vector2(0.5f, 0.5f);
+        cRt.pivot = new Vector2(0.5f, 0.5f);
+        cRt.anchoredPosition = new Vector2(0f, -25f);
+        cRt.sizeDelta = new Vector2(980f, 480f);
 
         // 1. Cocasnap Game Card
-        CreateGameCard(carousel.transform, "Card_Cocasnap",
-            badge: "🧩 3D Puzzle Challenge",
+        CreateGameCard(cardsContainer.transform, "Card_Cocasnap",
+            badge: "🧩 3D PUZZLE GAME",
             title: "Cocasnap",
-            subtitle: "Snap, match & solve the 3D cube puzzle with your companion robot!",
+            subtitle: "Match colors, snap blocks & solve 3D cube puzzles with your companion helping lift pieces!",
+            imagePath: "Assets/_Cocosnap/Assets/_TheCocoaSnap/Images/logo.png",
             buttonLabel: "Enter Cocasnap  \u2794",
-            pos: new Vector2(-195f, 0f),
-            size: new Vector2(360f, 350f),
+            pos: new Vector2(-245f, 0f),
+            size: new Vector2(460f, 460f),
             onEnterAction: LaunchCocasnap
         );
 
         // 2. Beer Pong Game Card
-        CreateGameCard(carousel.transform, "Card_BeerPong",
-            badge: "🏓 Physics Arcade",
+        CreateGameCard(cardsContainer.transform, "Card_BeerPong",
+            badge: "🏓 PHYSICS ARCADE",
             title: "Beer Pong",
-            subtitle: "Aim your toss, bounce the ping-pong balls & sink them into the red cups!",
+            subtitle: "Toss balls into cups! Your companion fetches balls or gets angry with stars if thrown!",
+            imagePath: "Assets/_BeerPong/Images/logo.png",
             buttonLabel: "Enter Beer Pong  \u2794",
-            pos: new Vector2(195f, 0f),
-            size: new Vector2(360f, 350f),
+            pos: new Vector2(245f, 0f),
+            size: new Vector2(460f, 460f),
             onEnterAction: LaunchBeerPong
         );
-
-        // Pager indicator
-        GameObject dotsObj = new GameObject("CarouselDots");
-        dotsObj.transform.SetParent(carousel.transform, false);
-        RectTransform dotsRt = dotsObj.AddComponent<RectTransform>();
-        dotsRt.anchorMin = new Vector2(0.5f, 0f);
-        dotsRt.anchorMax = new Vector2(0.5f, 0f);
-        dotsRt.pivot = new Vector2(0.5f, 0f);
-        dotsRt.anchoredPosition = new Vector2(0f, -24f);
-        dotsRt.sizeDelta = new Vector2(200f, 20f);
-
-        TextMeshProUGUI dotsTmp = dotsObj.AddComponent<TextMeshProUGUI>();
-        dotsTmp.text = "<color=#FFFFFF>\u25CF</color>    <color=#A5CCFF>\u25CF</color>";
-        dotsTmp.fontSize = 18;
-        dotsTmp.alignment = TextAlignmentOptions.Center;
     }
 
-    private void CreateGameCard(Transform parent, string name, string badge, string title, string subtitle, string buttonLabel, Vector2 pos, Vector2 size, UnityEngine.Events.UnityAction onEnterAction)
+    private void CreateGameCard(Transform parent, string name, string badge, string title, string subtitle, string imagePath, string buttonLabel, Vector2 pos, Vector2 size, UnityEngine.Events.UnityAction onEnterAction)
     {
         GameObject card = new GameObject(name);
         card.transform.SetParent(parent, false);
@@ -799,13 +709,26 @@ public class IntroSequenceManager : MonoBehaviour
         rt.anchoredPosition = pos;
         rt.sizeDelta = size;
 
-        // Frosted dark glass with luminous white glow
+        // Frosted dark glass background with luminous white glow
         Image img = card.AddComponent<Image>();
-        img.color = new Color(0.06f, 0.10f, 0.18f, 0.70f);
+        img.color = new Color(0.04f, 0.08f, 0.16f, 0.88f);
 
         Outline outline = card.AddComponent<Outline>();
         outline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.95f); // Glowing white border
         outline.effectDistance = new Vector2(2.5f, -2.5f);
+
+        // Whole card is clickable for effortless PC & VR interaction!
+        Button cardBtn = card.AddComponent<Button>();
+        ColorBlock cardCb = cardBtn.colors;
+        cardCb.normalColor = Color.white;
+        cardCb.highlightedColor = new Color(1.1f, 1.15f, 1.3f, 1.0f);
+        cardCb.pressedColor = new Color(0.85f, 0.92f, 1.0f, 1.0f);
+        cardBtn.colors = cardCb;
+        cardBtn.onClick.AddListener(onEnterAction);
+
+        // Add 3D BoxCollider so physics raycasts directly hit the card
+        BoxCollider boxCol = card.AddComponent<BoxCollider>();
+        boxCol.size = new Vector3(size.x, size.y, 5f);
 
         // Badge at top
         GameObject badgeObj = new GameObject("Badge");
@@ -814,11 +737,12 @@ public class IntroSequenceManager : MonoBehaviour
         badgeRt.anchorMin = new Vector2(0.5f, 1f);
         badgeRt.anchorMax = new Vector2(0.5f, 1f);
         badgeRt.pivot = new Vector2(0.5f, 1f);
-        badgeRt.anchoredPosition = new Vector2(0f, -16f);
-        badgeRt.sizeDelta = new Vector2(250f, 32f);
+        badgeRt.anchoredPosition = new Vector2(0f, -14f);
+        badgeRt.sizeDelta = new Vector2(240f, 30f);
 
         Image bImg = badgeObj.AddComponent<Image>();
-        bImg.color = new Color(1.0f, 1.0f, 1.0f, 0.18f);
+        bImg.color = new Color(1.0f, 1.0f, 1.0f, 0.20f);
+        bImg.raycastTarget = false;
 
         Outline bOutline = badgeObj.AddComponent<Outline>();
         bOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
@@ -838,21 +762,46 @@ public class IntroSequenceManager : MonoBehaviour
         bTmp.color = Color.white;
         bTmp.alignment = TextAlignmentOptions.Center;
 
-        // Game Title & Subtitle
+        // Image Preview Block
+        GameObject imgBlock = new GameObject("ImagePreview");
+        imgBlock.transform.SetParent(card.transform, false);
+        RectTransform imgRt = imgBlock.AddComponent<RectTransform>();
+        imgRt.anchorMin = new Vector2(0.5f, 1f);
+        imgRt.anchorMax = new Vector2(0.5f, 1f);
+        imgRt.pivot = new Vector2(0.5f, 1f);
+        imgRt.anchoredPosition = new Vector2(0f, -54f);
+        imgRt.sizeDelta = new Vector2(400f, 155f);
+
+        RawImage previewRaw = imgBlock.AddComponent<RawImage>();
+        previewRaw.color = Color.white;
+        previewRaw.raycastTarget = false;
+
+        Texture2D loadedTex = LoadTextureFromFile(imagePath);
+        if (loadedTex != null)
+        {
+            previewRaw.texture = loadedTex;
+        }
+
+        Outline imgOutline = imgBlock.AddComponent<Outline>();
+        imgOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.70f);
+        imgOutline.effectDistance = new Vector2(1.5f, -1.5f);
+
+        // Game Title & Subtitle Block
         GameObject infoObj = new GameObject("InfoBlock");
         infoObj.transform.SetParent(card.transform, false);
         RectTransform infoRt = infoObj.AddComponent<RectTransform>();
         infoRt.anchorMin = new Vector2(0.5f, 0.5f);
         infoRt.anchorMax = new Vector2(0.5f, 0.5f);
         infoRt.pivot = new Vector2(0.5f, 0.5f);
-        infoRt.anchoredPosition = new Vector2(0f, 22f);
-        infoRt.sizeDelta = new Vector2(320f, 110f);
+        infoRt.anchoredPosition = new Vector2(0f, -65f);
+        infoRt.sizeDelta = new Vector2(410f, 95f);
 
         TextMeshProUGUI infoTmp = infoObj.AddComponent<TextMeshProUGUI>();
-        infoTmp.text = $"<size=30><b><color=#FFFFFF>{title}</color></b></size>\n\n<size=14><color=#E6F0FF>{subtitle}</color></size>";
+        infoTmp.text = $"<size=28><b><color=#FFFFFF>{title}</color></b></size>\n\n<size=15><color=#D8E8FF>{subtitle}</color></size>";
         infoTmp.alignment = TextAlignmentOptions.Center;
+        infoTmp.raycastTarget = false;
 
-        // Enter Game Button (below card contents)
+        // Enter Game Button (at bottom of card)
         GameObject enterBtn = new GameObject("EnterButton");
         enterBtn.transform.SetParent(card.transform, false);
         RectTransform ebRt = enterBtn.AddComponent<RectTransform>();
@@ -860,7 +809,7 @@ public class IntroSequenceManager : MonoBehaviour
         ebRt.anchorMax = new Vector2(0.5f, 0f);
         ebRt.pivot = new Vector2(0.5f, 0f);
         ebRt.anchoredPosition = new Vector2(0f, 24f);
-        ebRt.sizeDelta = new Vector2(280f, 52f);
+        ebRt.sizeDelta = new Vector2(340f, 52f);
 
         Image ebImg = enterBtn.AddComponent<Image>();
         ebImg.color = new Color(1.0f, 1.0f, 1.0f, 0.25f); // Glowing white translucent capsule
@@ -872,8 +821,8 @@ public class IntroSequenceManager : MonoBehaviour
         Button btn = enterBtn.AddComponent<Button>();
         ColorBlock btnCb = btn.colors;
         btnCb.normalColor = Color.white;
-        btnCb.highlightedColor = new Color(1.0f, 1.0f, 1.0f, 0.45f);
-        btnCb.pressedColor = new Color(0.9f, 0.95f, 1.0f, 0.70f);
+        btnCb.highlightedColor = new Color(1.0f, 1.0f, 1.0f, 0.50f);
+        btnCb.pressedColor = new Color(0.9f, 0.95f, 1.0f, 0.75f);
         btn.colors = btnCb;
         btn.onClick.AddListener(onEnterAction);
 
@@ -886,70 +835,37 @@ public class IntroSequenceManager : MonoBehaviour
 
         TextMeshProUGUI ebTmp = ebTxt.AddComponent<TextMeshProUGUI>();
         ebTmp.text = $"<b>{buttonLabel}</b>";
-        ebTmp.fontSize = 18;
+        ebTmp.fontSize = 19;
+        ebTmp.fontStyle = FontStyles.Bold;
         ebTmp.color = Color.white;
         ebTmp.alignment = TextAlignmentOptions.Center;
+        ebTmp.raycastTarget = false;
     }
 
-    private void CreateBottomWidgets(Transform parent)
+    private Texture2D LoadTextureFromFile(string path)
     {
-        GameObject questObj = new GameObject("QuestBanner");
-        questObj.transform.SetParent(parent, false);
-        RectTransform qRt = questObj.AddComponent<RectTransform>();
-        qRt.anchorMin = new Vector2(0.24f, 0f);
-        qRt.anchorMax = new Vector2(0.24f, 0f);
-        qRt.pivot = new Vector2(0f, 0f);
-        qRt.anchoredPosition = new Vector2(0f, 20f);
-        qRt.sizeDelta = new Vector2(320f, 44f);
-
-        Image qImg = questObj.AddComponent<Image>();
-        qImg.color = new Color(1.0f, 1.0f, 1.0f, 0.12f);
-
-        Outline qOutline = questObj.AddComponent<Outline>();
-        qOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
-        qOutline.effectDistance = new Vector2(1.5f, -1.5f);
-
-        GameObject qTxt = new GameObject("Text");
-        qTxt.transform.SetParent(questObj.transform, false);
-        RectTransform qTxtRt = qTxt.AddComponent<RectTransform>();
-        qTxtRt.anchorMin = Vector2.zero;
-        qTxtRt.anchorMax = Vector2.one;
-        qTxtRt.sizeDelta = new Vector2(-20f, 0f);
-
-        TextMeshProUGUI qTmp = qTxt.AddComponent<TextMeshProUGUI>();
-        qTmp.text = "\uD83C\uDF81  Complete quests to earn exclusive rewards!  \u27E9";
-        qTmp.fontSize = 12;
-        qTmp.color = new Color(0.90f, 0.94f, 1.0f, 0.95f);
-        qTmp.alignment = TextAlignmentOptions.Center;
-
-        GameObject balObj = new GameObject("BalancePill");
-        balObj.transform.SetParent(parent, false);
-        RectTransform bRt = balObj.AddComponent<RectTransform>();
-        bRt.anchorMin = new Vector2(1f, 0f);
-        bRt.anchorMax = new Vector2(1f, 0f);
-        bRt.pivot = new Vector2(1f, 0f);
-        bRt.anchoredPosition = new Vector2(-35f, 20f);
-        bRt.sizeDelta = new Vector2(190f, 44f);
-
-        Image bImg = balObj.AddComponent<Image>();
-        bImg.color = new Color(1.0f, 1.0f, 1.0f, 0.12f);
-
-        Outline bOutline = balObj.AddComponent<Outline>();
-        bOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
-        bOutline.effectDistance = new Vector2(1.5f, -1.5f);
-
-        GameObject bTxt = new GameObject("Text");
-        bTxt.transform.SetParent(balObj.transform, false);
-        RectTransform bTxtRt = bTxt.AddComponent<RectTransform>();
-        bTxtRt.anchorMin = Vector2.zero;
-        bTxtRt.anchorMax = Vector2.one;
-        bTxtRt.sizeDelta = new Vector2(-20f, 0f);
-
-        TextMeshProUGUI bTmp = bTxt.AddComponent<TextMeshProUGUI>();
-        bTmp.text = "\u26A1  Your Balance:  \uD83D\uDFE1 250  +";
-        bTmp.fontSize = 13;
-        bTmp.color = Color.white;
-        bTmp.alignment = TextAlignmentOptions.Center;
+        if (string.IsNullOrEmpty(path)) return null;
+#if UNITY_EDITOR
+        Texture2D assetTex = UnityEditor.AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        if (assetTex != null) return assetTex;
+#endif
+        if (System.IO.File.Exists(path))
+        {
+            try
+            {
+                byte[] bytes = System.IO.File.ReadAllBytes(path);
+                Texture2D tex = new Texture2D(2, 2);
+                if (tex.LoadImage(bytes))
+                {
+                    return tex;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"IntroSequenceManager: Failed loading texture at {path}: {ex.Message}");
+            }
+        }
+        return null;
     }
 
     // =========================================================
@@ -1055,12 +971,18 @@ public class IntroSequenceManager : MonoBehaviour
         }
         else
         {
-            // Auto-detect and activate Cocasnap components in scene
+            // Auto-detect and activate Cocasnap components in scene, hide Beer Pong
             PuzzleLogic puzzle = Object.FindFirstObjectByType<PuzzleLogic>(FindObjectsInactive.Include);
             if (puzzle != null) puzzle.gameObject.SetActive(true);
 
             CubeResetter resetter = Object.FindFirstObjectByType<CubeResetter>(FindObjectsInactive.Include);
             if (resetter != null) resetter.gameObject.SetActive(true);
+
+            BeerPongScoreManager bpScore = Object.FindFirstObjectByType<BeerPongScoreManager>(FindObjectsInactive.Include);
+            if (bpScore != null) bpScore.gameObject.SetActive(false);
+
+            BallManager ballMgr = Object.FindFirstObjectByType<BallManager>(FindObjectsInactive.Include);
+            if (ballMgr != null) ballMgr.gameObject.SetActive(false);
         }
 
         TryLoadScene(cocasnapSceneName);
@@ -1084,7 +1006,13 @@ public class IntroSequenceManager : MonoBehaviour
         }
         else
         {
-            // Auto-detect and activate Beer Pong components in scene
+            // Auto-detect and activate Beer Pong components in scene, hide Cocasnap
+            PuzzleLogic puzzle = Object.FindFirstObjectByType<PuzzleLogic>(FindObjectsInactive.Include);
+            if (puzzle != null) puzzle.gameObject.SetActive(false);
+
+            CubeResetter resetter = Object.FindFirstObjectByType<CubeResetter>(FindObjectsInactive.Include);
+            if (resetter != null) resetter.gameObject.SetActive(false);
+
             BeerPongScoreManager bpScore = Object.FindFirstObjectByType<BeerPongScoreManager>(FindObjectsInactive.Include);
             if (bpScore != null) bpScore.gameObject.SetActive(true);
 
@@ -1134,10 +1062,12 @@ public class IntroSequenceManager : MonoBehaviour
             string name = System.IO.Path.GetFileNameWithoutExtension(path);
             if (string.Equals(name, sceneName, System.StringComparison.OrdinalIgnoreCase))
             {
+                Debug.Log($"IntroSequenceManager: Loading scene '{sceneName}' (Build Settings index {i})...");
                 UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
                 return;
             }
         }
+        Debug.LogWarning($"IntroSequenceManager: Scene '{sceneName}' was not found in Build Settings!");
     }
 
     private GameObject CreateCloseButton(Transform parent, string name, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClickAction)

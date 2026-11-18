@@ -134,6 +134,10 @@ The companion supports **both** Quest 3 interaction modes seamlessly:
 
 | Key | Action |
 |---|---|
+| `C` | Directly launch Cocasnap Game |
+| `V` | Directly launch Beer Pong Game |
+| `E` / `Enter` | Continue / Advance welcome panel |
+| `Escape` / `X` | Close active panel |
 | `B` / `T` | Force robot to help with nearest block (Cocasnap) |
 | `F` | Force robot to fetch ball (Beer Pong) |
 | `G` | Force robot Hurt / Angry reaction |

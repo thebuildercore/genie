@@ -727,23 +727,31 @@ public class CompanionBeerPong : MonoBehaviour
             subtitleCanvas.renderMode = RenderMode.WorldSpace;
             subtitleCanvas.worldCamera = Camera.main;
 
+            var scaler = go.AddComponent<UnityEngine.UI.CanvasScaler>();
+            scaler.dynamicPixelsPerUnit = 4f;
+
             // Background panel
             var bg = new GameObject("BG").AddComponent<UnityEngine.UI.Image>();
             bg.transform.SetParent(go.transform, false);
-            bg.color = new Color(0f, 0f, 0f, 0.78f);
+            bg.color = new Color(0.01f, 0.02f, 0.05f, 0.90f);
             RectTransform bgRt = bg.GetComponent<RectTransform>();
-            bgRt.sizeDelta = new Vector2(600f, 120f);
+            bgRt.sizeDelta = new Vector2(680f, 130f);
+
+            var outline = bg.gameObject.AddComponent<UnityEngine.UI.Outline>();
+            outline.effectColor = new Color(1f, 1f, 1f, 0.90f);
+            outline.effectDistance = new Vector2(2f, -2f);
 
             // Text
             GameObject textGo = new GameObject("SubtitleText");
             textGo.transform.SetParent(go.transform, false);
             subtitleText = textGo.AddComponent<TextMeshProUGUI>();
             subtitleText.alignment = TextAlignmentOptions.Center;
-            subtitleText.fontSize = 32f;
+            subtitleText.fontSize = 38f;
+            subtitleText.fontStyle = FontStyles.Bold;
             subtitleText.color = Color.white;
             subtitleText.enableWordWrapping = true;
             RectTransform trt = subtitleText.GetComponent<RectTransform>();
-            trt.sizeDelta = new Vector2(560f, 110f);
+            trt.sizeDelta = new Vector2(640f, 120f);
             trt.anchoredPosition = Vector2.zero;
 
             // Start hidden
@@ -819,9 +827,15 @@ public class CompanionBeerPong : MonoBehaviour
     // =========================================================================
     private void FindVRHandAnchors()
     {
-        var allTransforms = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
-        foreach (var t in allTransforms)
+        if (vrRightHand != null && vrLeftHand != null) return;
+
+        // Search within player rig first for top performance
+        Transform searchRoot = _playerHead != null ? _playerHead.root : null;
+        Transform[] candidates = searchRoot != null ? searchRoot.GetComponentsInChildren<Transform>(true) : Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
+
+        foreach (var t in candidates)
         {
+            if (t == null) continue;
             string n = t.name.ToLower();
 
             // Right Hand detection: Handles both Hands-Only (direct touch/fingers) AND Touch Plus controllers

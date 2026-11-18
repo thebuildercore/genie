@@ -171,9 +171,16 @@ public class CompanionHighFive : MonoBehaviour
 
     private void FindVRHandAnchors()
     {
-        var allTransforms = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
-        foreach (var t in allTransforms)
+        if (vrRightHand != null && vrLeftHand != null) return;
+
+        Camera cam = Camera.main;
+        Transform[] candidates = (cam != null && cam.transform.root != null)
+            ? cam.transform.root.GetComponentsInChildren<Transform>(true)
+            : Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
+
+        foreach (var t in candidates)
         {
+            if (t == null) continue;
             string n = t.name.ToLower();
             if (vrRightHand == null && (n.Contains("righthandoncontroller") || n.Contains("righthandanchor") || n.Contains("rightcontrollerinhand") || n.Contains("rightcontrolleranchor") || n.Contains("r_index") || n.Contains("b_r_index3") || n == "righthand"))
             {
