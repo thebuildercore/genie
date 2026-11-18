@@ -91,11 +91,30 @@
 
 ---
 
-## 💬 Subtitles
-- All reactions show **text subtitles** above the robot's head
-- Shown on a small floating panel (black background, white text)
-- Auto-hides after a few seconds
-- Always faces the player
+## 💬 Subtitles & Audio
+- All reactions show **text subtitles** above the robot's head (floating panel, auto-facing player)
+- Built-in **cute robot audio clips** mapped automatically:
+  - Hurt: `robot_ouch.wav` / `robot_fall_oof.wav`
+  - Angry: `robot_annoyed.wav`
+  - Calm / Happy: `robot_happy_chirp.wav`
+  - Throw Protest: `robot_struggle_heavy.wav`
+  - High Five: `highfive_smack.wav`
+  - Poke: `robot_giggle.wav`
+  - Fall / Drop: `block_drop_thud.wav`
+
+---
+
+## 🥽 Meta Quest 3 Tracking & Hand Colliders Compatibility
+
+The companion supports **both** Quest 3 interaction modes seamlessly:
+1. **Hands-Only Mode (Direct Touch / Hand Tracking)**:
+   - Tracks finger joints and palm anchors (`r_index`, `l_index`, `b_r_index3`, `indextip`, `righthandanchor`)
+   - Dynamically equips a physical trigger sphere collider (`radius = 0.08m`) on your index/hands
+   - Proximity and direct touch/poke/high-five work without needing controllers
+2. **Hands & Controllers Mode (Touch Plus Controllers)**:
+   - Detects Touch Plus anchors (`RightControllerAnchor`, `RightHandOnControllerAnchor`, `RightControllerInHandAnchor`)
+   - Ensures trigger colliders and distance tracking on the controller bodies
+   - Grabbing the robot or ball works using standard Touch Plus grip/trigger or direct pinch
 
 ---
 

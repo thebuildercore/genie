@@ -102,6 +102,13 @@ public class CompanionBeerPong : MonoBehaviour
     [SerializeField] private AudioClip fetchSound;
     [SerializeField] private AudioClip offerSound;
 
+    [Header("Quest 3 / VR Hand & Controller Tracking")]
+    [Tooltip("Left Hand/Controller Anchor. Auto-found at runtime if null.")]
+    [SerializeField] private Transform vrLeftHand;
+    [Tooltip("Right Hand/Controller Anchor. Auto-found at runtime if null.")]
+    [SerializeField] private Transform vrRightHand;
+    private float lastHandSearchTime = 0f;
+
     [Header("Subtitle")]
     [Tooltip("WorldSpace Canvas prefab or object for subtitles. Auto-created if null.")]
     [SerializeField] private Canvas subtitleCanvas;
@@ -171,10 +178,15 @@ public class CompanionBeerPong : MonoBehaviour
 
         _spawnPoint = transform.position;
         _audio.spatialBlend = 0.5f;
+
+        LoadDefaultAudioClips();
+        EnsureRobotTriggerCollider();
     }
 
     private void Start()
     {
+        FindVRHandAnchors();
+
         // --- Ball ---
         if (ballManager == null)
             ballManager = Object.FindFirstObjectByType<BallManager>();
@@ -211,6 +223,13 @@ public class CompanionBeerPong : MonoBehaviour
 
     private void Update()
     {
+        // Periodically refresh VR Hand / Controller anchors (handles switching between Hands-Only and Touch Plus controllers)
+        if ((vrLeftHand == null || vrRightHand == null) && Time.time - lastHandSearchTime > 2.0f)
+        {
+            lastHandSearchTime = Time.time;
+            FindVRHandAnchors();
+        }
+
         switch (_state)
         {
             case BotState.Idle:          UpdateIdle();         break;
@@ -545,20 +564,61 @@ public class CompanionBeerPong : MonoBehaviour
 
     private bool IsPlayerHandClose()
     {
-        if (_playerHead == null) return false;
+        // 1. Direct world-space distance check against detected VR Hands / Touch Plus controllers
+        // This works in BOTH "Hands-Only" (direct hand tracking) AND "Touch Plus" (controllers) mode.
+        if (vrRightHand != null && vrRightHand.gameObject.activeInHierarchy)
+        {
+            if (Vector3.Distance(transform.position, vrRightHand.position) < fleeHandDistance)
+                return true;
+        }
+        if (vrLeftHand != null && vrLeftHand.gameObject.activeInHierarchy)
+        {
+            if (Vector3.Distance(transform.position, vrLeftHand.position) < fleeHandDistance)
+                return true;
+        }
 
-        // Check OVR hands if available
-#if UNITY_EDITOR || !UNITY_ANDROID
-        // PC mode: use head proximity as a proxy
-        return Vector3.Distance(transform.position, _playerHead.position) < fleeHandDistance + 0.4f;
-#else
-        // Quest 3: Check OVR controller positions
-        Vector3 leftHand  = OVRInput.GetLocalControllerPosition(OVRInput.Controller.LTouch);
-        Vector3 rightHand = OVRInput.GetLocalControllerPosition(OVRInput.Controller.RTouch);
-        float dL = Vector3.Distance(transform.position, leftHand);
-        float dR = Vector3.Distance(transform.position, rightHand);
-        return dL < fleeHandDistance || dR < fleeHandDistance;
-#endif
+        // 2. Head proximity fallback (for PC editor or when player leans in very close)
+        if (_playerHead != null)
+        {
+            if (Vector3.Distance(transform.position, _playerHead.position) < fleeHandDistance + 0.3f)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        string n = other.gameObject.name.ToLower();
+        bool isHandOrController = n.Contains("hand") || n.Contains("controller") || n.Contains("finger") || 
+                                  n.Contains("poke") || n.Contains("index") || n.Contains("grab");
+
+        if (isHandOrController)
+        {
+            if (_state == BotState.HurtAndAngry)
+            {
+                // Immediate flee when touched in angry mode!
+                Vector3 fleeDir = (transform.position - other.transform.position).normalized;
+                fleeDir.y = 0f;
+                SetDestination(transform.position + fleeDir * 1.5f);
+                ShowSubtitle("DON'T TOUCH ME! 😤", 1.5f);
+                PlaySound(angrySound);
+            }
+            else if (_state == BotState.Idle || _state == BotState.OfferingBall)
+            {
+                // Physical touch/poke reaction
+                NotifyPlayerActivity();
+                if (_poke != null)
+                {
+                    _poke.OnCompanionPoked();
+                }
+                else
+                {
+                    PlaySound(pokeSound);
+                    ShowSubtitle("Hey! Stop poking me! 😒", 2.0f);
+                }
+            }
+        }
     }
 
     private IEnumerator CalmDown()
@@ -752,6 +812,100 @@ public class CompanionBeerPong : MonoBehaviour
             _agent.isStopped = true;
             _agent.ResetPath();
         }
+    }
+
+    // =========================================================================
+    //  Quest 3 Hand / Controller Discovery & Audio Setup
+    // =========================================================================
+    private void FindVRHandAnchors()
+    {
+        var allTransforms = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
+        foreach (var t in allTransforms)
+        {
+            string n = t.name.ToLower();
+
+            // Right Hand detection: Handles both Hands-Only (direct touch/fingers) AND Touch Plus controllers
+            if (vrRightHand == null)
+            {
+                if (n.Contains("r_index") || n.Contains("righthandoncontroller") || n.Contains("righthandanchor") ||
+                    n.Contains("rightcontrollerinhand") || n.Contains("rightcontrolleranchor") || 
+                    n.Contains("rightcontroller") || n.Contains("b_r_index3") || 
+                    n.Contains("right_hand_indextip") || n == "righthand")
+                {
+                    vrRightHand = t;
+                    EnsureHandCollider(t);
+                }
+            }
+
+            // Left Hand detection: Handles both Hands-Only (direct touch/fingers) AND Touch Plus controllers
+            if (vrLeftHand == null)
+            {
+                if (n.Contains("l_index") || n.Contains("lefthandoncontroller") || n.Contains("lefthandanchor") ||
+                    n.Contains("leftcontrollerinhand") || n.Contains("leftcontrolleranchor") || 
+                    n.Contains("leftcontroller") || n.Contains("b_l_index3") || 
+                    n.Contains("left_hand_indextip") || n == "lefthand")
+                {
+                    vrLeftHand = t;
+                    EnsureHandCollider(t);
+                }
+            }
+        }
+    }
+
+    private void EnsureHandCollider(Transform handTr)
+    {
+        if (handTr == null) return;
+        Collider col = handTr.GetComponent<Collider>();
+        if (col == null)
+        {
+            SphereCollider sc = handTr.gameObject.AddComponent<SphereCollider>();
+            sc.radius = 0.08f;
+            sc.isTrigger = true;
+        }
+    }
+
+    private void EnsureRobotTriggerCollider()
+    {
+        Collider existingCol = GetComponent<Collider>();
+        if (existingCol == null)
+        {
+            CapsuleCollider cc = gameObject.AddComponent<CapsuleCollider>();
+            cc.center = new Vector3(0f, 0.4f, 0f);
+            cc.radius = 0.35f;
+            cc.height = 0.8f;
+            cc.isTrigger = true;
+        }
+    }
+
+    private void LoadDefaultAudioClips()
+    {
+#if UNITY_EDITOR
+        string audioDir = "Assets/_Genie_CoreLogic/Companion/Audio/";
+        if (hurtSound == null)
+            hurtSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "robot_ouch.wav");
+        if (angrySound == null)
+            angrySound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "robot_annoyed.wav");
+        if (calmSound == null)
+            calmSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "robot_happy_chirp.wav");
+        if (throwProtestSound == null)
+            throwProtestSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "robot_struggle_heavy.wav");
+        if (highFiveSound == null)
+            highFiveSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "highfive_smack.wav");
+        if (pokeSound == null)
+            pokeSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "robot_giggle.wav");
+        if (fetchSound == null)
+            fetchSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "robot_happy_chirp.wav");
+        if (offerSound == null)
+            offerSound = UnityEditor.AssetDatabase.LoadAssetAtPath<AudioClip>(audioDir + "robot_giggle.wav");
+#endif
+        if (hurtSound == null) hurtSound = Resources.Load<AudioClip>("CompanionAudio/robot_ouch");
+        if (angrySound == null) angrySound = Resources.Load<AudioClip>("CompanionAudio/robot_annoyed");
+        if (calmSound == null) calmSound = Resources.Load<AudioClip>("CompanionAudio/robot_happy_chirp");
+        if (throwProtestSound == null) throwProtestSound = Resources.Load<AudioClip>("CompanionAudio/robot_struggle_heavy");
+        if (highFiveSound == null) highFiveSound = Resources.Load<AudioClip>("CompanionAudio/highfive_smack");
+        if (pokeSound == null) pokeSound = Resources.Load<AudioClip>("CompanionAudio/robot_giggle");
+        if (fetchSound == null) fetchSound = Resources.Load<AudioClip>("CompanionAudio/robot_happy_chirp");
+        if (offerSound == null) offerSound = Resources.Load<AudioClip>("CompanionAudio/robot_giggle");
     }
 
     // =========================================================================

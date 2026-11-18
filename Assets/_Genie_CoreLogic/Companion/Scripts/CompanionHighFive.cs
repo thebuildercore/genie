@@ -174,11 +174,12 @@ public class CompanionHighFive : MonoBehaviour
         var allTransforms = Object.FindObjectsByType<Transform>(FindObjectsSortMode.None);
         foreach (var t in allTransforms)
         {
-            if (vrRightHand == null && (t.name == "RightHandOnControllerAnchor" || t.name == "RightHandAnchor" || t.name == "RightHandAnchorDetached" || t.name == "RightControllerInHandAnchor"))
+            string n = t.name.ToLower();
+            if (vrRightHand == null && (n.Contains("righthandoncontroller") || n.Contains("righthandanchor") || n.Contains("rightcontrollerinhand") || n.Contains("rightcontrolleranchor") || n.Contains("r_index") || n.Contains("b_r_index3") || n == "righthand"))
             {
                 vrRightHand = t;
             }
-            if (vrLeftHand == null && (t.name == "LeftHandOnControllerAnchor" || t.name == "LeftHandAnchor" || t.name == "LeftHandAnchorDetached" || t.name == "LeftControllerInHandAnchor"))
+            if (vrLeftHand == null && (n.Contains("lefthandoncontroller") || n.Contains("lefthandanchor") || n.Contains("leftcontrollerinhand") || n.Contains("leftcontrolleranchor") || n.Contains("l_index") || n.Contains("b_l_index3") || n == "lefthand"))
             {
                 vrLeftHand = t;
             }

@@ -154,12 +154,12 @@ public class CompanionPokeInteraction : MonoBehaviour
         foreach (var t in allTransforms)
         {
             string n = t.name.ToLower();
-            if (rightHandAnchor == null && (n.Contains("r_index") || n.Contains("righthandoncontroller") || n.Contains("righthandanchor") || n.Contains("rightcontrollerinhand")))
+            if (rightHandAnchor == null && (n.Contains("r_index") || n.Contains("righthandoncontroller") || n.Contains("righthandanchor") || n.Contains("rightcontrollerinhand") || n.Contains("rightcontrolleranchor") || n.Contains("rightcontroller") || n.Contains("b_r_index3") || n.Contains("right_hand_indextip") || n == "righthand"))
             {
                 rightHandAnchor = t;
                 EnsureHandCollider(t);
             }
-            if (leftHandAnchor == null && (n.Contains("l_index") || n.Contains("lefthandoncontroller") || n.Contains("lefthandanchor") || n.Contains("leftcontrollerinhand")))
+            if (leftHandAnchor == null && (n.Contains("l_index") || n.Contains("lefthandoncontroller") || n.Contains("lefthandanchor") || n.Contains("leftcontrollerinhand") || n.Contains("leftcontrolleranchor") || n.Contains("leftcontroller") || n.Contains("b_l_index3") || n.Contains("left_hand_indextip") || n == "lefthand"))
             {
                 leftHandAnchor = t;
                 EnsureHandCollider(t);
