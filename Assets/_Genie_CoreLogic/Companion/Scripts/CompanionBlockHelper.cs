@@ -574,6 +574,9 @@ public class CompanionBlockHelper : MonoBehaviour
         {
             Debug.Log("CompanionBlockHelper: Block is TOO BIG (>0.5)! Robot struggles, trembles, and falls.");
 
+            CompanionHandAnimator handAnim = GetComponent<CompanionHandAnimator>();
+            CompanionLightController lightCtrl = GetComponent<CompanionLightController>();
+
             // Crouch down to grab corner
             yield return StartCoroutine(AnimateCrouch(0.18f, true));
 
@@ -583,6 +586,9 @@ public class CompanionBlockHelper : MonoBehaviour
             targetBlock.transform.localRotation = Quaternion.identity;
             Rigidbody blockRb = targetBlock.GetComponent<Rigidbody>();
             if (blockRb != null) blockRb.isKinematic = true;
+
+            handAnim?.SetPose(CompanionHandAnimator.HandPose.Trembling);
+            lightCtrl?.SetMood(CompanionLightController.LightMood.Sad);
 
             // Lift block slightly off the ground (0.08m)
             Vector3 liftStartPos = transform.position;
@@ -700,6 +706,9 @@ public class CompanionBlockHelper : MonoBehaviour
         heldBlock.transform.localPosition = new Vector3(0f, 0f, 0.12f);
         heldBlock.transform.localRotation = Quaternion.identity;
 
+        CompanionHandAnimator normalHandAnim = GetComponent<CompanionHandAnimator>();
+        normalHandAnim?.SetPose(CompanionHandAnimator.HandPose.HoldBlock);
+
         Rigidbody rb = heldBlock.GetComponent<Rigidbody>();
         if (rb != null) rb.isKinematic = true;
 
@@ -753,6 +762,8 @@ public class CompanionBlockHelper : MonoBehaviour
             Quaternion reachLookUp = defaultRot * Quaternion.Euler(-35f, 0f, 0f); // Head tilted up
 
             // Reach upward anticipation
+            normalHandAnim?.SetPose(CompanionHandAnimator.HandPose.ReachHigh);
+            GetComponent<CompanionLightController>()?.SetMood(CompanionLightController.LightMood.Sad);
             for (float t = 0; t < 0.35f; t += Time.deltaTime)
             {
                 transform.rotation = Quaternion.Slerp(defaultRot, reachLookUp, t / 0.35f);
@@ -844,6 +855,8 @@ public class CompanionBlockHelper : MonoBehaviour
         }
 
         // Cheerful success celebration
+        normalHandAnim?.PlayWave(2.5f);
+        GetComponent<CompanionLightController>()?.SetMoodTemporary(CompanionLightController.LightMood.Happy, 2.5f);
         PlayLoudClip(soundHappyChirp, 1.05f);
         if (linkedGameManager != null)
         {

@@ -359,6 +359,10 @@ public class CompanionHighFive : MonoBehaviour
         }
 
         // 4. Crouch anticipation (squash slightly before jumping)
+        CompanionHandAnimator handAnim = GetComponent<CompanionHandAnimator>();
+        CompanionLightController lightCtrl = GetComponent<CompanionLightController>();
+        handAnim?.SetPose(CompanionHandAnimator.HandPose.HighFivePrep);
+
         float crouchTime = 0.18f;
         Vector3 crouchScale = new Vector3(originalLocalScale.x * 1.15f, originalLocalScale.y * 0.82f, originalLocalScale.z * 1.15f);
         Vector3 basePosition = transform.position;
@@ -396,6 +400,10 @@ public class CompanionHighFive : MonoBehaviour
         if (!hasSmacked)
         {
             hasSmacked = true;
+
+            handAnim?.SetPose(CompanionHandAnimator.HandPose.HighFiveSmack);
+            lightCtrl?.FlashLight(1.4f, 0.35f);
+            lightCtrl?.SetMoodTemporary(CompanionLightController.LightMood.Happy, 2.5f);
 
             // Satisfying Smack Sound!
             if (audioSource != null && soundSmack != null)
@@ -441,6 +449,7 @@ public class CompanionHighFive : MonoBehaviour
         transform.localScale = originalLocalScale;
 
         // Little happy celebratory wiggle
+        handAnim?.PlayWave(1.8f);
         for (float t = 0; t < 0.35f; t += Time.deltaTime)
         {
             float wobbleAngle = Mathf.Sin(t * 30f) * 6f;

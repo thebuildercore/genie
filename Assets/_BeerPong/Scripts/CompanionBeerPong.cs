@@ -156,6 +156,8 @@ public class CompanionBeerPong : MonoBehaviour
     private CompanionDizzyShake _dizzy;
     private CompanionHighFive _highFive;
     private CompanionPokeInteraction _poke;
+    private CompanionHandAnimator _handAnim;
+    private CompanionLightController _lightCtrl;
 
     // Idle wander
     private float _wanderTimer = 0f;
@@ -175,6 +177,10 @@ public class CompanionBeerPong : MonoBehaviour
         _dizzy    = GetComponent<CompanionDizzyShake>();
         _highFive = GetComponent<CompanionHighFive>();
         _poke     = GetComponent<CompanionPokeInteraction>();
+        _handAnim = GetComponent<CompanionHandAnimator>();
+        if (_handAnim == null) _handAnim = gameObject.AddComponent<CompanionHandAnimator>();
+        _lightCtrl = GetComponent<CompanionLightController>();
+        if (_lightCtrl == null) _lightCtrl = gameObject.AddComponent<CompanionLightController>();
 
         _spawnPoint = transform.position;
         _audio.spatialBlend = 0.5f;
@@ -223,6 +229,23 @@ public class CompanionBeerPong : MonoBehaviour
 
     private void Update()
     {
+        // Periodically refresh ball reference if it was dynamically created
+        if (_ball == null && Time.frameCount % 60 == 0)
+        {
+            if (ballManager == null) ballManager = Object.FindFirstObjectByType<BallManager>();
+            if (ballManager != null)
+            {
+                _ball = ballManager;
+                _ballRb = ballManager.GetComponent<Rigidbody>();
+                _ballGrab = ballManager.GetComponent<XRGrabInteractable>();
+                if (_ballGrab != null)
+                {
+                    _ballGrab.selectEntered.AddListener(OnBallGrabbedByPlayer);
+                    _ballGrab.selectExited.AddListener(OnBallReleasedByPlayer);
+                }
+            }
+        }
+
         // Periodically refresh VR Hand / Controller anchors (handles switching between Hands-Only and Touch Plus controllers)
         if ((vrLeftHand == null || vrRightHand == null) && Time.time - lastHandSearchTime > 2.0f)
         {
@@ -292,6 +315,8 @@ public class CompanionBeerPong : MonoBehaviour
         PlaySound(fetchSound);
         ShowSubtitle("I'll grab the ball for you! 🏓", 3f);
         _brain?.ChangeState(CompanionBrain.CompanionState.Wandering);
+        _handAnim?.SetPose(CompanionHandAnimator.HandPose.Walking);
+        _lightCtrl?.SetMood(CompanionLightController.LightMood.Normal);
     }
 
     private void UpdateFetching()
@@ -326,6 +351,9 @@ public class CompanionBeerPong : MonoBehaviour
         _ball.transform.localPosition = holdOffset;
         _ball.transform.localRotation = Quaternion.identity;
         _ballHeldByRobot = true;
+
+        _handAnim?.SetPose(CompanionHandAnimator.HandPose.HoldBall);
+        _lightCtrl?.SetMoodTemporary(CompanionLightController.LightMood.Happy, 2.5f);
 
         PlaySound(offerSound);
         ShowSubtitle("Here! Take it and throw! 🎯", 4f);
@@ -403,6 +431,9 @@ public class CompanionBeerPong : MonoBehaviour
         {
             ReleaseBallFromRobot();
             ShowSubtitle("Great throw! Good luck! ✨", 3f);
+            _handAnim?.PlayWave(2.5f);
+            _lightCtrl?.SetMoodTemporary(CompanionLightController.LightMood.Happy, 3f);
+            _lightCtrl?.FlashLight(1.3f, 0.35f);
         }
     }
 
@@ -429,6 +460,8 @@ public class CompanionBeerPong : MonoBehaviour
 
         PlaySound(throwProtestSound);
         ShowSubtitle("HEY! Put me DOWN! 😤", 3f);
+        _handAnim?.SetPose(CompanionHandAnimator.HandPose.Trembling);
+        _lightCtrl?.SetMood(CompanionLightController.LightMood.Angry);
         // The robot is now held by XRI — physics takes over.
         // We detect collision on release.
     }
@@ -480,6 +513,10 @@ public class CompanionBeerPong : MonoBehaviour
         PlaySound(hurtSound);
         ShowSubtitle(customMessage ?? "OW! That HURT! 💫⭐", 3f);
 
+        _handAnim?.PlayDizzy(2.0f);
+        _lightCtrl?.FlashLight(1.5f, 0.4f);
+        _lightCtrl?.SetMood(CompanionLightController.LightMood.Angry);
+
         // Stars VFX
         if (_starCoroutine != null) StopCoroutine(_starCoroutine);
         _starCoroutine = StartCoroutine(ShowStars());
@@ -494,6 +531,8 @@ public class CompanionBeerPong : MonoBehaviour
         PlaySound(angrySound);
         ShowSubtitle("That is IT! I'm FURIOUS! 🔥😤", 4f);
         _state = BotState.HurtAndAngry;
+        _handAnim?.SetPose(CompanionHandAnimator.HandPose.AngryShaking);
+        _lightCtrl?.SetMood(CompanionLightController.LightMood.Angry);
         _angryDuration = Random.Range(angryDurationMin, angryDurationMax);
         _angryTimer = 0f;
         _angrySubtitleTimer = 0f;
@@ -634,6 +673,8 @@ public class CompanionBeerPong : MonoBehaviour
         PlaySound(calmSound);
         yield return new WaitForSeconds(2.5f);
         ShowSubtitle("I forgot about it. Let's keep playing! 🎳", 4f);
+        _lightCtrl?.SetMood(CompanionLightController.LightMood.Normal);
+        _handAnim?.PlayWave(2.5f);
         yield return new WaitForSeconds(4f);
 
         EnterIdle();
@@ -649,6 +690,8 @@ public class CompanionBeerPong : MonoBehaviour
         _wanderTimer = 0f;
         _ballHeldByRobot = false;
         ReleaseBallFromRobot();
+        _handAnim?.SetPose(CompanionHandAnimator.HandPose.Idle);
+        _lightCtrl?.SetMood(CompanionLightController.LightMood.Normal);
         _brain?.ChangeState(CompanionBrain.CompanionState.Idle);
     }
 
@@ -939,6 +982,8 @@ public class CompanionBeerPong : MonoBehaviour
     public void TriggerDizzy()
     {
         _dizzy?.SimulateDizzyShake();
+        _handAnim?.PlayDizzy(3.0f);
+        _lightCtrl?.SetMoodTemporary(CompanionLightController.LightMood.Sad, 3.0f);
         ShowSubtitle("Whoooa… dizzy… 🌀", 3f);
     }
 
@@ -946,6 +991,9 @@ public class CompanionBeerPong : MonoBehaviour
     public void TriggerHighFive()
     {
         _highFive?.SimulateHighFive();
+        _handAnim?.PlayHighFiveApex();
+        _lightCtrl?.FlashLight(1.4f, 0.35f);
+        _lightCtrl?.SetMoodTemporary(CompanionLightController.LightMood.Happy, 2.5f);
         PlaySound(highFiveSound);
         ShowSubtitle("Up top! ✋ Nice!", 3f);
     }
@@ -954,6 +1002,8 @@ public class CompanionBeerPong : MonoBehaviour
     public void TriggerPoke()
     {
         _poke?.OnCompanionPoked();
+        _handAnim?.PlayFlinch(0.6f);
+        _lightCtrl?.FlashLight(1.2f, 0.2f);
         PlaySound(pokeSound);
         ShowSubtitle("Hey! Stop poking me! 😒", 2.5f);
     }

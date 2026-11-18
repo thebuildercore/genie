@@ -13,10 +13,10 @@ public class DebugPCTester : MonoBehaviour
     public CompanionBeerPong beerPongBot;
 
     [Header("Camera & Testing Perspective")]
-    [Tooltip("If true, automatically adjusts the camera position up and back in PC mode to frame the table and robot perfectly.")]
+    [Tooltip("If true, automatically adjusts the camera position to the spacious Lobby view during Welcome/Game Selection.")]
     public bool autoFrameCameraForPC = true;
-    public Vector3 pcCameraPosition = new Vector3(0.1f, 1.15f, -0.65f);
-    public Vector3 pcCameraRotation = new Vector3(18f, 0f, 0f);
+    public Vector3 pcCameraPosition = new Vector3(0f, 1.25f, -2.6f);
+    public Vector3 pcCameraRotation = new Vector3(0f, 0f, 0f);
 
     [Header("Intro Flow")]
     [Tooltip("If true, skips the intro card and opens straight into the game.")]
@@ -138,6 +138,15 @@ public class DebugPCTester : MonoBehaviour
             if (introManager != null)
             {
                 introManager.LaunchBeerPong();
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.M) || Input.GetKeyDown(KeyCode.H))
+        {
+            Debug.Log("DEBUG: Simulating Return to Hub Lobby / Menu (M/H)");
+            if (introManager != null)
+            {
+                introManager.RelocateToLobbyAndShowMenu();
             }
         }
 

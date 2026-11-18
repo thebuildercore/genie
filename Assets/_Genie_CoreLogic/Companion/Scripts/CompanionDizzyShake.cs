@@ -37,6 +37,8 @@ public class CompanionDizzyShake : MonoBehaviour
     private Quaternion lastRotation;
     private GameEventManager gameManager;
     private Grabbable grabbable;
+    private CompanionHandAnimator handAnimator;
+    private CompanionLightController lightController;
 
     private void Awake()
     {
@@ -44,6 +46,9 @@ public class CompanionDizzyShake : MonoBehaviour
         {
             companionBrain = GetComponent<CompanionBrain>();
         }
+
+        handAnimator = GetComponent<CompanionHandAnimator>();
+        lightController = GetComponent<CompanionLightController>();
 
         if (audioSource == null)
         {
@@ -207,6 +212,9 @@ public class CompanionDizzyShake : MonoBehaviour
             }
         }
 
+        handAnimator?.PlayDizzy(dizzyRecoveryDuration);
+        lightController?.SetMoodTemporary(CompanionLightController.LightMood.Sad, dizzyRecoveryDuration);
+
         // Play the cute cartoon dizzy sound
         if (soundDizzy == null) LoadDefaultAudio();
         if (audioSource != null && soundDizzy != null)
@@ -270,6 +278,9 @@ public class CompanionDizzyShake : MonoBehaviour
         transform.rotation = baseRotation;
 
         // Regained balance!
+        lightController?.FlashLight(1.3f, 0.25f);
+        handAnimator?.SetPose(CompanionHandAnimator.HandPose.Idle);
+
         yield return new WaitForSeconds(0.2f);
 
         if (companionBrain != null)

@@ -118,6 +118,37 @@ The companion supports **both** Quest 3 interaction modes seamlessly:
 
 ---
 
+## 🤖 Dynamic Hand Bone Movements (`CompanionHandAnimator`)
+
+The robot's arm and hand skeleton (`Bone.003.R/L` shoulders, `Bone.004.R/L` elbows, `Bone.004.R.001/L.001` wrists/hands, and `Bone.005.R/L` fingers) moves naturally across all actions via `LateUpdate()` procedural animation:
+- **Idle Breathing**: Soft natural arm swaying and breathing motion.
+- **Walking / Wandering**: Alternating arm swings coordinated with locomotion velocity.
+- **Holding Ball**: Both arms reach forward with cupped hands gently presenting the beer pong ball.
+- **Holding Block**: Wide forward arm clasp to hold puzzle blocks.
+- **Trembling**: High-frequency physical arm shaking when struggling with heavy blocks.
+- **Reach High**: Overhead arm reach when puzzle target slots are high up.
+- **Angry Shaking**: Raised clenched fists vibrating when furious.
+- **Dizzy Flail**: Circular outward flailing arms when dizzy or falling.
+- **High-Five**: Raises right arm to target elevation and cleanly smacks forward.
+- **Poke Flinch & Crossed Arms**: Flinches defensively on poke, and crosses arms poutingly on 3rd poke.
+- **Friendly Wave**: Right arm raises and sways back and forth to greet or thank the player.
+
+---
+
+## 💡 Minimal Visually Attractive Lighting (`CompanionLightController`)
+
+Designed specifically for Quest 3 VR framerate and aesthetics (no harsh dynamic shadows, zero glare):
+- **Core Aura Light**: Subtle, soft warm-white point light hovering near the robot's chest (`#EDF5FF`, range: 2.0m, gentle breathing pulse) to make the robot pop in darker scenes.
+- **Ground Floor Light**: Soft ground-level pool light (`#CBE0FF`, range: 1.1m) directly beneath the robot, grounding its shadow visually.
+- **Contextual Mood Tints**:
+  - *Normal*: Clean warm-white / moonlight glow.
+  - *Happy*: Soft golden champagne glow during high-fives and successful deliveries.
+  - *Angry*: Warm apricot / soft amber glow when furious.
+  - *Sad / Confused*: Gentle lavender-blue tint when dizzy or struggling with large blocks.
+- **Sparkle / Flash**: Quick soft pulse highlight on high-fives and playful taps.
+
+---
+
 ## 🎮 States (What robot is doing at any time)
 
 | State | Meaning |
@@ -130,21 +161,48 @@ The companion supports **both** Quest 3 interaction modes seamlessly:
 
 ---
 
+## 🏛️ Arena Layout, Lobby & Relocation
+
+- **Spacious Welcome Lobby**:
+  - The player starts at the Lobby (`Vector3(0, 0, -2.6m)`), comfortably away from the game tables.
+  - The luminous floating panels (`enterArenaPanel` and `gameSelectionPanel`) hover right in front at `Vector3(0, 1.25m, -1.25m)`.
+- **Two-Panel Welcome Flow**:
+  1. **Panel 1 (Welcome Screen)**: Frosted glass cards, glowing white accents, "Continue →" button, and top-right close button.
+  2. **Panel 2 (Discover Games)**: Exactly 2 interactive cards (Cocasnap & Beer Pong) with badges, logos, descriptions, "Enter" buttons, and top-right close button.
+- **Automatic Relocation to Game Stations**:
+  - Clicking **"Enter Cocasnap"** (or card 1): Panels close, and the player is smoothly relocated to the **Cocasnap Playing Station** (`Vector3(-1.4m, 0, 0.4m)`).
+  - Clicking **"Enter Beer Pong"** (or card 2): Panels close, and the player is smoothly relocated to the **Beer Pong Throwing Line** (`Vector3(1.6m, 0, 0.2m)`).
+  - The companion robot automatically accompanies the player to their chosen game.
+- **Both Games Reachable in Shared World**:
+  - Cocasnap is on the left (`X = -1.4m`) and Beer Pong is on the right (`X = +1.6m`).
+  - Players can physically walk between both games at any time in Meta Quest 3 roomscale or PC.
+
+---
+
+## 🎛️ Persistent Top-Corner Quick Game Switcher HUD (`QuickGameSwitcherHUD`)
+
+A sleek, glowing white pill floating in the upper-right peripheral view of the player:
+- **`[ 🧩 Cocasnap ]`**: Relocates player to Cocasnap station instantly.
+- **`[ 🏓 Beer Pong ]`**: Relocates player to Beer Pong station instantly.
+- **`[ 🏠 Hub Menu ]`**: Returns player to the Welcome Lobby and re-opens the Game Selection Cards.
+- Fully interactive with PC mouse clicks, VR controller rays, VR hand poke, and hotkeys.
+
+---
+
 ## 🖥️ PC Debug Keys (Editor Testing)
 
 | Key | Action |
 |---|---|
-| `C` | Directly launch Cocasnap Game |
-| `V` | Directly launch Beer Pong Game |
-| `E` / `Enter` | Continue / Advance welcome panel |
+| `1` / `C` | Relocate / Switch to Cocasnap Game |
+| `2` / `V` | Relocate / Switch to Beer Pong Game |
+| `M` / `H` | Relocate to Lobby & open Hub Menu |
+| `E` / `Enter` / `Space` | Continue / Advance welcome panel |
 | `Escape` / `X` | Close active panel |
 | `B` / `T` | Force robot to help with nearest block (Cocasnap) |
 | `F` | Force robot to fetch ball (Beer Pong) |
 | `G` | Force robot Hurt / Angry reaction |
 | `J` | Force robot to calm down |
 | `K` | Force robot to offer ball |
-| `H` | Simulate High Five |
 | `P` | Simulate Poke |
 | `D` | Simulate Dizzy Shake |
-| `1` | Demo: Block height too high |
 | `2` | Demo: Block too big / robot falls |

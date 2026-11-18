@@ -17,6 +17,10 @@ public class CompanionBrain : MonoBehaviour
     public Animator companionAnimator;
     public Transform rightHandBone;
 
+    [Header("Procedural Hands & Lights")]
+    public CompanionHandAnimator handAnimator;
+    public CompanionLightController lightController;
+
     public float moveSpeed = 0.85f;
     public float rotationSpeed = 6.0f;
 
@@ -66,6 +70,19 @@ public class CompanionBrain : MonoBehaviour
         if (GetComponent<CompanionBlockHelper>() == null)
         {
             gameObject.AddComponent<CompanionBlockHelper>();
+        }
+
+        // Auto-attach Procedural Hands & Minimal Attractive Lights
+        handAnimator = GetComponent<CompanionHandAnimator>();
+        if (handAnimator == null)
+        {
+            handAnimator = gameObject.AddComponent<CompanionHandAnimator>();
+        }
+
+        lightController = GetComponent<CompanionLightController>();
+        if (lightController == null)
+        {
+            lightController = gameObject.AddComponent<CompanionLightController>();
         }
 
         // Remove sphere toy ball from scene
@@ -184,5 +201,18 @@ public class CompanionBrain : MonoBehaviour
     {
         currentState = newState;
         Debug.Log($"Companion transitioned to: {newState}");
+
+        if (handAnimator != null)
+        {
+            switch (newState)
+            {
+                case CompanionState.Idle:
+                    handAnimator.SetPose(CompanionHandAnimator.HandPose.Idle);
+                    break;
+                case CompanionState.Wandering:
+                    handAnimator.SetPose(CompanionHandAnimator.HandPose.Walking);
+                    break;
+            }
+        }
     }
 }

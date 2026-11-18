@@ -21,6 +21,22 @@ public class IntroSequenceManager : MonoBehaviour
     public CompanionBrain companion;
     public GameEventManager gameManager;
 
+    private static IntroSequenceManager _instance;
+    public static IntroSequenceManager Instance => _instance;
+
+    [Header("Lobby & Arena Layout")]
+    [Tooltip("Lobby standing position for player during Welcome & Game Selection.")]
+    public Vector3 lobbyPlayerPosition = new Vector3(0f, 0f, -2.6f);
+
+    [Tooltip("World position for the floating panels during Welcome & Game Selection (comfortable distance away from tables).")]
+    public Vector3 lobbyPanelPosition = new Vector3(0f, 1.25f, -1.25f);
+
+    [Tooltip("Playing station position in front of Cocasnap puzzle table.")]
+    public Vector3 cocasnapPlayingPosition = new Vector3(-1.4f, 0f, 0.4f);
+
+    [Tooltip("Playing station position at Beer Pong throwing line.")]
+    public Vector3 beerPongPlayingPosition = new Vector3(1.6f, 0f, 0.2f);
+
     [Header("UI Panels (World Space)")]
     public GameObject enterArenaPanel;
     public GameObject gameSelectionPanel;
@@ -71,8 +87,15 @@ public class IntroSequenceManager : MonoBehaviour
 
     private void Awake()
     {
+        _instance = this;
+
         EnsureSingleEventSystem();
         ConfigureCameraForPassthrough();
+        EnsureQuickGameSwitcherHUDExists();
+        EnsureBeerPongStationExists();
+
+        // Position panels in the spacious Welcome Lobby (away from tables)
+        PositionPanelsInLobby();
 
         if (enterArenaPanel != null)
         {
@@ -104,6 +127,9 @@ public class IntroSequenceManager : MonoBehaviour
     {
         EnsureSingleEventSystem();
 
+        // Spawn/Place player standing in the Lobby area facing the panels
+        RelocatePlayer(lobbyPlayerPosition);
+
         if (gameManager == null)
         {
             gameManager = Object.FindFirstObjectByType<GameEventManager>();
@@ -113,6 +139,9 @@ public class IntroSequenceManager : MonoBehaviour
         {
             companion = Object.FindFirstObjectByType<CompanionBrain>();
         }
+
+        // Place companion near the welcome panels in Lobby
+        AccompanyCompanion(lobbyPlayerPosition + new Vector3(0.75f, 0f, 0.9f), lobbyPlayerPosition);
 
         if (gameManager != null)
         {
@@ -135,36 +164,105 @@ public class IntroSequenceManager : MonoBehaviour
         // Periodic check to guarantee exactly ONE EventSystem in scene
         EnsureSingleEventSystem();
 
-        // PC Mouse click fallback for Game Selection Panel
+        // PC Mouse click handling for ALL panels, buttons, cards, and close icons
         if (Input.GetMouseButtonDown(0))
         {
             HandlePCMouseInput();
+        }
+
+        // Keyboard hotkey navigation for PC testing & rapid switching
+        HandleKeyboardNavigation();
+    }
+
+    private void HandleKeyboardNavigation()
+    {
+        // Continue / Advance (E, Enter, Space)
+        if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.Space))
+        {
+            if (enterArenaPanel != null && enterArenaPanel.activeSelf)
+            {
+                TriggerEnterArena();
+            }
+        }
+
+        // Close active panels (Escape, X)
+        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.X))
+        {
+            CloseAllPanels();
+        }
+
+        // Quick Game Launch / Switch hotkeys
+        if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.C))
+        {
+            LaunchCocasnap();
+        }
+        else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.V))
+        {
+            LaunchBeerPong();
+        }
+        else if (Input.GetKeyDown(KeyCode.M) || Input.GetKeyDown(KeyCode.H))
+        {
+            RelocateToLobbyAndShowMenu();
         }
     }
 
     private void HandlePCMouseInput()
     {
-        if (gameSelectionPanel == null || !gameSelectionPanel.activeSelf) return;
+        if (UnityEngine.EventSystems.EventSystem.current == null) return;
 
-        Camera cam = Camera.main;
-        if (cam == null) return;
-
-        Ray ray = cam.ScreenPointToRay(Input.mousePosition);
-        RaycastHit[] hits = Physics.RaycastAll(ray, 20f);
-        foreach (var h in hits)
+        // 1. Raycast all UGUI Graphic Raycasters across active panels
+        var pointerData = new UnityEngine.EventSystems.PointerEventData(UnityEngine.EventSystems.EventSystem.current)
         {
-            string n = h.collider.gameObject.name.ToLower();
-            if (n.Contains("cocasnap"))
+            position = Input.mousePosition
+        };
+
+        var results = new System.Collections.Generic.List<UnityEngine.EventSystems.RaycastResult>();
+        UnityEngine.EventSystems.EventSystem.current.RaycastAll(pointerData, results);
+
+        foreach (var r in results)
+        {
+            if (r.gameObject == null) continue;
+
+            Button btn = r.gameObject.GetComponentInParent<Button>();
+            if (btn != null && btn.interactable && btn.gameObject.activeInHierarchy)
             {
-                Debug.Log("IntroSequenceManager: PC Mouse clicked Cocasnap card!");
-                LaunchCocasnap();
+                Debug.Log($"[IntroSequenceManager] PC Mouse clicked UGUI Button: {btn.gameObject.name}");
+                btn.onClick.Invoke();
                 return;
             }
-            if (n.Contains("beerpong"))
+        }
+
+        // 2. Secondary fallback: 3D physics raycast against cards, buttons, or colliders
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+            RaycastHit[] hits = Physics.RaycastAll(ray, 35f);
+            foreach (var h in hits)
             {
-                Debug.Log("IntroSequenceManager: PC Mouse clicked Beer Pong card!");
-                LaunchBeerPong();
-                return;
+                if (h.collider == null) continue;
+
+                Button btn = h.collider.GetComponentInParent<Button>();
+                if (btn != null && btn.interactable && btn.gameObject.activeInHierarchy)
+                {
+                    Debug.Log($"[IntroSequenceManager] PC Mouse clicked 3D Button Collider: {btn.gameObject.name}");
+                    btn.onClick.Invoke();
+                    return;
+                }
+
+                string n = h.collider.gameObject.name.ToLower();
+                if (n.Contains("cocasnap"))
+                {
+                    Debug.Log("[IntroSequenceManager] PC Mouse clicked Cocasnap card!");
+                    LaunchCocasnap();
+                    return;
+                }
+                if (n.Contains("beerpong"))
+                {
+                    Debug.Log("[IntroSequenceManager] PC Mouse clicked Beer Pong card!");
+                    LaunchBeerPong();
+                    return;
+                }
             }
         }
     }
@@ -188,8 +286,28 @@ public class IntroSequenceManager : MonoBehaviour
         {
             if (systems[i] != null && systems[i] != primary)
             {
-                Debug.Log($"[IntroSequenceManager] Deactivating duplicate EventSystem '{systems[i].gameObject.name}' to enforce exactly 1 EventSystem.");
-                systems[i].gameObject.SetActive(false);
+                Debug.Log($"[IntroSequenceManager] Destroying duplicate EventSystem '{systems[i].gameObject.name}' to enforce exactly 1 EventSystem.");
+                if (Application.isPlaying)
+                {
+                    Destroy(systems[i].gameObject);
+                }
+                else
+                {
+                    DestroyImmediate(systems[i].gameObject);
+                }
+            }
+        }
+
+        if (primary != null)
+        {
+            var inputModule = primary.GetComponent<UnityEngine.EventSystems.BaseInputModule>();
+            if (inputModule == null)
+            {
+                primary.gameObject.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            }
+            else if (!inputModule.enabled)
+            {
+                inputModule.enabled = true;
             }
         }
     }
@@ -950,77 +1068,206 @@ public class IntroSequenceManager : MonoBehaviour
     }
 
     // =========================================================
-    // GAME LAUNCHERS & PANEL DISMISSAL
+    // GAME LAUNCHERS, RELOCATION & PANEL DISMISSAL
     // =========================================================
 
     /// <summary>
-    /// Launches the Cocasnap game and immediately dismisses all panels from the screen.
+    /// Launches Cocasnap: relocates player to the puzzle playing station, dismisses panels, and accompanies companion.
     /// </summary>
     public void LaunchCocasnap()
     {
-        Debug.Log("IntroSequenceManager: Launching Cocasnap Game!");
+        Debug.Log("[IntroSequenceManager] Entering Cocasnap Game Station!");
         CloseAllPanels();
 
         onEnterCocasnap?.Invoke();
 
-        // 1. If in-scene game object assigned, enable it
+        // 1. Enable Cocasnap puzzle components
         if (cocasnapInSceneRoot != null)
         {
             cocasnapInSceneRoot.SetActive(true);
-            if (beerPongInSceneRoot != null) beerPongInSceneRoot.SetActive(false);
         }
         else
         {
-            // Auto-detect and activate Cocasnap components in scene, hide Beer Pong
             PuzzleLogic puzzle = Object.FindFirstObjectByType<PuzzleLogic>(FindObjectsInactive.Include);
             if (puzzle != null) puzzle.gameObject.SetActive(true);
 
             CubeResetter resetter = Object.FindFirstObjectByType<CubeResetter>(FindObjectsInactive.Include);
             if (resetter != null) resetter.gameObject.SetActive(true);
-
-            BeerPongScoreManager bpScore = Object.FindFirstObjectByType<BeerPongScoreManager>(FindObjectsInactive.Include);
-            if (bpScore != null) bpScore.gameObject.SetActive(false);
-
-            BallManager ballMgr = Object.FindFirstObjectByType<BallManager>(FindObjectsInactive.Include);
-            if (ballMgr != null) ballMgr.gameObject.SetActive(false);
         }
 
-        TryLoadScene(cocasnapSceneName);
+        // 2. Relocate Player to Cocasnap Station
+        Vector3 targetPos = cocasnapPlayingPosition;
+        PuzzleLogic activePuzzle = Object.FindFirstObjectByType<PuzzleLogic>();
+        if (activePuzzle != null)
+        {
+            // Position player 1.1m back from the puzzle table facing it
+            targetPos = activePuzzle.transform.position - activePuzzle.transform.forward * 1.1f;
+            targetPos.y = 0f;
+        }
+
+        RelocatePlayer(targetPos);
+
+        // 3. Companion robot accompanies player to Cocasnap station
+        AccompanyCompanion(targetPos + new Vector3(0.55f, 0f, 0.75f), targetPos);
+
+        // 4. Update Quick Switcher HUD indicator
+        if (QuickGameSwitcherHUD.Instance != null)
+        {
+            QuickGameSwitcherHUD.Instance.HighlightActive(1);
+        }
     }
 
     /// <summary>
-    /// Launches the Beer Pong game and immediately dismisses all panels from the screen.
+    /// Launches Beer Pong: ensures station is present, relocates player to throwing line, and accompanies companion.
     /// </summary>
     public void LaunchBeerPong()
     {
-        Debug.Log("IntroSequenceManager: Launching Beer Pong Game!");
+        Debug.Log("[IntroSequenceManager] Entering Beer Pong Game Station!");
         CloseAllPanels();
 
         onEnterBeerPong?.Invoke();
 
-        // 1. If in-scene game object assigned, enable it
-        if (beerPongInSceneRoot != null)
+        // 1. Ensure Beer Pong station exists in arena
+        EnsureBeerPongStationExists();
+
+        // 2. Relocate Player to Beer Pong Throwing Line
+        RelocatePlayer(beerPongPlayingPosition);
+
+        // 3. Companion robot accompanies player to Beer Pong station
+        AccompanyCompanion(beerPongPlayingPosition + new Vector3(-0.55f, 0f, 0.75f), beerPongPlayingPosition);
+
+        // 4. Update Quick Switcher HUD indicator
+        if (QuickGameSwitcherHUD.Instance != null)
         {
-            beerPongInSceneRoot.SetActive(true);
-            if (cocasnapInSceneRoot != null) cocasnapInSceneRoot.SetActive(false);
+            QuickGameSwitcherHUD.Instance.HighlightActive(2);
+        }
+    }
+
+    /// <summary>
+    /// Relocates player back to the Welcome Lobby area and presents the Game Selection Cards menu.
+    /// </summary>
+    public void RelocateToLobbyAndShowMenu()
+    {
+        Debug.Log("[IntroSequenceManager] Relocating to Lobby & opening Game Selection Cards!");
+
+        RelocatePlayer(lobbyPlayerPosition);
+        PositionPanelsInLobby();
+
+        if (enterArenaPanel != null) enterArenaPanel.SetActive(false);
+        if (gameSelectionPanel == null) EnsureDiscoverGamesLayoutExists();
+        if (gameSelectionPanel != null)
+        {
+            ApplyTransparency(gameSelectionPanel);
+            OptimizeCanvasForVRAndPC(gameSelectionPanel);
+            gameSelectionPanel.SetActive(true);
+        }
+
+        AccompanyCompanion(lobbyPlayerPosition + new Vector3(0.75f, 0f, 0.9f), lobbyPlayerPosition);
+
+        if (QuickGameSwitcherHUD.Instance != null)
+        {
+            QuickGameSwitcherHUD.Instance.HighlightActive(0);
+        }
+    }
+
+    /// <summary>
+    /// Relocates the active player (OVRCameraRig / XROrigin / Camera.main) to target world position.
+    /// </summary>
+    public static void RelocatePlayer(Vector3 targetPos, Quaternion? targetRot = null)
+    {
+        Camera cam = Camera.main;
+        if (cam == null) return;
+
+        Transform rig = cam.transform;
+        while (rig.parent != null)
+        {
+            string pName = rig.parent.name.ToLower();
+            if (pName.Contains("rig") || pName.Contains("origin") || pName.Contains("tracking") || pName.Contains("player") || pName.Contains("meta"))
+            {
+                rig = rig.parent;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (rig != cam.transform)
+        {
+            Vector3 camLocalOffset = cam.transform.position - rig.position;
+            camLocalOffset.y = 0f;
+            rig.position = targetPos - camLocalOffset;
+            if (targetRot.HasValue) rig.rotation = targetRot.Value;
         }
         else
         {
-            // Auto-detect and activate Beer Pong components in scene, hide Cocasnap
-            PuzzleLogic puzzle = Object.FindFirstObjectByType<PuzzleLogic>(FindObjectsInactive.Include);
-            if (puzzle != null) puzzle.gameObject.SetActive(false);
-
-            CubeResetter resetter = Object.FindFirstObjectByType<CubeResetter>(FindObjectsInactive.Include);
-            if (resetter != null) resetter.gameObject.SetActive(false);
-
-            BeerPongScoreManager bpScore = Object.FindFirstObjectByType<BeerPongScoreManager>(FindObjectsInactive.Include);
-            if (bpScore != null) bpScore.gameObject.SetActive(true);
-
-            BallManager ballMgr = Object.FindFirstObjectByType<BallManager>(FindObjectsInactive.Include);
-            if (ballMgr != null) ballMgr.gameObject.SetActive(true);
+            cam.transform.position = targetPos;
+            if (targetRot.HasValue) cam.transform.rotation = targetRot.Value;
         }
 
-        TryLoadScene(beerPongSceneName);
+        Debug.Log($"[IntroSequenceManager] Relocated player rig '{rig.name}' to {targetPos}");
+    }
+
+    /// <summary>
+    /// Positions the Welcome / Game Selection Canvas root comfortably in the Welcome Lobby away from tables.
+    /// </summary>
+    public void PositionPanelsInLobby()
+    {
+        Transform canvasTr = GetActiveCanvasTransform();
+        if (canvasTr != null)
+        {
+            canvasTr.position = lobbyPanelPosition;
+            canvasTr.rotation = Quaternion.identity; // Facing player standing at Z = -2.6 looking +Z
+            canvasTr.localScale = Vector3.one * 0.0016f;
+        }
+    }
+
+    /// <summary>
+    /// Moves the companion robot to accompany the player at a target position.
+    /// </summary>
+    public void AccompanyCompanion(Vector3 targetPos, Vector3 lookAtPos)
+    {
+        if (companion == null) companion = Object.FindFirstObjectByType<CompanionBrain>();
+        if (companion != null)
+        {
+            var agent = companion.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null && agent.isActiveAndEnabled && agent.isOnNavMesh)
+            {
+                agent.Warp(targetPos);
+            }
+            else
+            {
+                companion.transform.position = targetPos;
+            }
+
+            Vector3 lookDir = lookAtPos - targetPos;
+            lookDir.y = 0f;
+            if (lookDir.sqrMagnitude > 0.01f)
+            {
+                companion.transform.rotation = Quaternion.LookRotation(lookDir.normalized);
+            }
+        }
+    }
+
+    public void EnsureQuickGameSwitcherHUDExists()
+    {
+        QuickGameSwitcherHUD hud = Object.FindFirstObjectByType<QuickGameSwitcherHUD>();
+        if (hud == null)
+        {
+            GameObject hudObj = new GameObject("QuickGameSwitcherHUD");
+            hudObj.AddComponent<QuickGameSwitcherHUD>();
+        }
+    }
+
+    public void EnsureBeerPongStationExists()
+    {
+        BeerPongStationBuilder builder = Object.FindFirstObjectByType<BeerPongStationBuilder>();
+        if (builder == null)
+        {
+            GameObject builderObj = new GameObject("BeerPongStationBuilder");
+            builder = builderObj.AddComponent<BeerPongStationBuilder>();
+        }
+        builder.EnsureBeerPongStation();
     }
 
     /// <summary>

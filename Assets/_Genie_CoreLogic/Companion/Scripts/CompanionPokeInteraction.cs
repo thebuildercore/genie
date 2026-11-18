@@ -41,6 +41,8 @@ public class CompanionPokeInteraction : MonoBehaviour
     [SerializeField] private bool isReacting = false;
     private float lastPokeTimestamp = -10f;
     private GameEventManager linkedGameManager;
+    private CompanionHandAnimator handAnimator;
+    private CompanionLightController lightController;
 
     private Vector3 originalLocalScale;
 
@@ -50,6 +52,9 @@ public class CompanionPokeInteraction : MonoBehaviour
         {
             companionBrain = GetComponent<CompanionBrain>();
         }
+
+        handAnimator = GetComponent<CompanionHandAnimator>();
+        lightController = GetComponent<CompanionLightController>();
 
         if (audioSource == null)
         {
@@ -280,8 +285,10 @@ public class CompanionPokeInteraction : MonoBehaviour
         isReacting = true;
         if (companionBrain != null) companionBrain.ChangeState(CompanionBrain.CompanionState.Interacting);
 
-        // Play Ouch sound
+        // Play Ouch sound & hand flinch
         PlaySound(soundOuch, 1.05f);
+        handAnimator?.PlayFlinch(0.45f);
+        lightController?.FlashLight(1.2f, 0.2f);
 
         // Procedural flinch: squash & tilt slightly back
         float duration = 0.45f;
@@ -316,8 +323,10 @@ public class CompanionPokeInteraction : MonoBehaviour
         isReacting = true;
         if (companionBrain != null) companionBrain.ChangeState(CompanionBrain.CompanionState.Interacting);
 
-        // Play Giggle sound
+        // Play Giggle sound & wave
         PlaySound(soundGiggle, 1.0f);
+        handAnimator?.PlayWave(0.7f);
+        lightController?.SetMoodTemporary(CompanionLightController.LightMood.Happy, 0.8f);
 
         if (companionBrain != null && companionBrain.companionAnimator != null)
         {
@@ -365,8 +374,10 @@ public class CompanionPokeInteraction : MonoBehaviour
         isReacting = true;
         if (companionBrain != null) companionBrain.ChangeState(CompanionBrain.CompanionState.Interacting);
 
-        // Play Annoyed sound
+        // Play Annoyed sound & crossed arms
         PlaySound(soundAnnoyed, 0.95f);
+        handAnimator?.PlayArmsCrossed(2.0f);
+        lightController?.SetMoodTemporary(CompanionLightController.LightMood.Angry, 2.2f);
 
         if (companionBrain != null && companionBrain.companionAnimator != null)
         {
