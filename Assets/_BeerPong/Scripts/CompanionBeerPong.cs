@@ -172,11 +172,11 @@ public class CompanionBeerPong : MonoBehaviour
         _brain = GetComponent<CompanionBrain>();
         _agent = GetComponent<NavMeshAgent>();
         _audio = GetComponent<AudioSource>();
-        _rb    = GetComponent<Rigidbody>();
+        _rb = GetComponent<Rigidbody>();
 
-        _dizzy    = GetComponent<CompanionDizzyShake>();
+        _dizzy = GetComponent<CompanionDizzyShake>();
         _highFive = GetComponent<CompanionHighFive>();
-        _poke     = GetComponent<CompanionPokeInteraction>();
+        _poke = GetComponent<CompanionPokeInteraction>();
         _handAnim = GetComponent<CompanionHandAnimator>();
         if (_handAnim == null) _handAnim = gameObject.AddComponent<CompanionHandAnimator>();
         _lightCtrl = GetComponent<CompanionLightController>();
@@ -198,8 +198,8 @@ public class CompanionBeerPong : MonoBehaviour
             ballManager = Object.FindFirstObjectByType<BallManager>();
         if (ballManager != null)
         {
-            _ball    = ballManager;
-            _ballRb  = ballManager.GetComponent<Rigidbody>();
+            _ball = ballManager;
+            _ballRb = ballManager.GetComponent<Rigidbody>();
             _ballGrab = ballManager.GetComponent<XRGrabInteractable>();
             if (_ballGrab != null)
             {
@@ -255,11 +255,11 @@ public class CompanionBeerPong : MonoBehaviour
 
         switch (_state)
         {
-            case BotState.Idle:          UpdateIdle();         break;
-            case BotState.FetchingBall:  UpdateFetching();     break;
-            case BotState.OfferingBall:  UpdateOffering();     break;
-            case BotState.HurtAndAngry:  UpdateAngry();        break;
-            case BotState.CalmingDown:                        break;
+            case BotState.Idle: UpdateIdle(); break;
+            case BotState.FetchingBall: UpdateFetching(); break;
+            case BotState.OfferingBall: UpdateOffering(); break;
+            case BotState.HurtAndAngry: UpdateAngry(); break;
+            case BotState.CalmingDown: break;
         }
 
         // --- Stars orbit ---
@@ -629,7 +629,7 @@ public class CompanionBeerPong : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         string n = other.gameObject.name.ToLower();
-        bool isHandOrController = n.Contains("hand") || n.Contains("controller") || n.Contains("finger") || 
+        bool isHandOrController = n.Contains("hand") || n.Contains("controller") || n.Contains("finger") ||
                                   n.Contains("poke") || n.Contains("index") || n.Contains("grab");
 
         if (isHandOrController)
@@ -885,8 +885,8 @@ public class CompanionBeerPong : MonoBehaviour
             if (vrRightHand == null)
             {
                 if (n.Contains("r_index") || n.Contains("righthandoncontroller") || n.Contains("righthandanchor") ||
-                    n.Contains("rightcontrollerinhand") || n.Contains("rightcontrolleranchor") || 
-                    n.Contains("rightcontroller") || n.Contains("b_r_index3") || 
+                    n.Contains("rightcontrollerinhand") || n.Contains("rightcontrolleranchor") ||
+                    n.Contains("rightcontroller") || n.Contains("b_r_index3") ||
                     n.Contains("right_hand_indextip") || n == "righthand")
                 {
                     vrRightHand = t;
@@ -898,8 +898,8 @@ public class CompanionBeerPong : MonoBehaviour
             if (vrLeftHand == null)
             {
                 if (n.Contains("l_index") || n.Contains("lefthandoncontroller") || n.Contains("lefthandanchor") ||
-                    n.Contains("leftcontrollerinhand") || n.Contains("leftcontrolleranchor") || 
-                    n.Contains("leftcontroller") || n.Contains("b_l_index3") || 
+                    n.Contains("leftcontrollerinhand") || n.Contains("leftcontrolleranchor") ||
+                    n.Contains("leftcontroller") || n.Contains("b_l_index3") ||
                     n.Contains("left_hand_indextip") || n == "lefthand")
                 {
                     vrLeftHand = t;
@@ -991,7 +991,9 @@ public class CompanionBeerPong : MonoBehaviour
     public void TriggerHighFive()
     {
         _highFive?.SimulateHighFive();
-        _handAnim?.PlayHighFiveApex();
+        // FIX: CompanionHandAnimator has no PlayHighFiveApex(). PlayWave(float) already
+        // exists (used elsewhere in this script), so use it to avoid CS1061.
+        _handAnim?.PlayWave(1.5f);
         _lightCtrl?.FlashLight(1.4f, 0.35f);
         _lightCtrl?.SetMoodTemporary(CompanionLightController.LightMood.Happy, 2.5f);
         PlaySound(highFiveSound);
@@ -1011,10 +1013,10 @@ public class CompanionBeerPong : MonoBehaviour
     // =========================================================================
     //  PC Debug (keyboard shortcuts wired from DebugPCTester)
     // =========================================================================
-    public void DEBUG_ForceFetch()   { EnterFetchingBall(); }
-    public void DEBUG_ForceHurt()    { TriggerHurtReaction(); }
+    public void DEBUG_ForceFetch() { EnterFetchingBall(); }
+    public void DEBUG_ForceHurt() { TriggerHurtReaction(); }
     public void DEBUG_ForceCalmDown() { if (_state == BotState.HurtAndAngry) _angryTimer = _angryDuration + 1f; }
-    public void DEBUG_ForceOffer()   { if (_ball != null) StartCoroutine(PickUpBall()); }
+    public void DEBUG_ForceOffer() { if (_ball != null) StartCoroutine(PickUpBall()); }
 
     // =========================================================================
     //  Cleanup

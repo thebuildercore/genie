@@ -3,8 +3,16 @@
   "WorkspaceRootPath": "D:\\Unity\\Projects\\htn\\genie\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{1DB7641A-E8D8-FC1C-6784-A146362BB93E}|Assembly-CSharp.csproj|d:\\unity\\projects\\htn\\genie\\assets\\corelogic\\scripts\\ui scripts\\shortcutkey.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{1DB7641A-E8D8-FC1C-6784-A146362BB93E}|Assembly-CSharp.csproj|solutionrelative:assets\\corelogic\\scripts\\ui scripts\\shortcutkey.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{1DB7641A-E8D8-FC1C-6784-A146362BB93E}|Assembly-CSharp.csproj|d:\\unity\\projects\\htn\\genie\\assets\\_beerpong\\scripts\\companionbeerpong.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1DB7641A-E8D8-FC1C-6784-A146362BB93E}|Assembly-CSharp.csproj|solutionrelative:assets\\_beerpong\\scripts\\companionbeerpong.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1DB7641A-E8D8-FC1C-6784-A146362BB93E}|Assembly-CSharp.csproj|d:\\unity\\projects\\htn\\genie\\assets\\_beerpong\\scripts\\beerpongstationbuilder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1DB7641A-E8D8-FC1C-6784-A146362BB93E}|Assembly-CSharp.csproj|solutionrelative:assets\\_beerpong\\scripts\\beerpongstationbuilder.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|D:\\Unity\\Projects\\htn\\genie\\Assets\\CoreLogic\\Scripts\\UI Scripts\\ShortcutKey.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\CoreLogic\\Scripts\\UI Scripts\\ShortcutKey.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -19,15 +27,39 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "CompanionBeerPong.cs",
+              "DocumentMoniker": "D:\\Unity\\Projects\\htn\\genie\\Assets\\_BeerPong\\Scripts\\CompanionBeerPong.cs",
+              "RelativeDocumentMoniker": "Assets\\_BeerPong\\Scripts\\CompanionBeerPong.cs",
+              "ToolTip": "D:\\Unity\\Projects\\htn\\genie\\Assets\\_BeerPong\\Scripts\\CompanionBeerPong.cs",
+              "RelativeToolTip": "Assets\\_BeerPong\\Scripts\\CompanionBeerPong.cs",
+              "ViewState": "AgIAAKkCAAAAAAAAAAAAAA4EAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-11-18T14:11:42.988Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "BeerPongStationBuilder.cs",
+              "DocumentMoniker": "D:\\Unity\\Projects\\htn\\genie\\Assets\\_BeerPong\\Scripts\\BeerPongStationBuilder.cs",
+              "RelativeDocumentMoniker": "Assets\\_BeerPong\\Scripts\\BeerPongStationBuilder.cs",
+              "ToolTip": "D:\\Unity\\Projects\\htn\\genie\\Assets\\_BeerPong\\Scripts\\BeerPongStationBuilder.cs",
+              "RelativeToolTip": "Assets\\_BeerPong\\Scripts\\BeerPongStationBuilder.cs",
+              "ViewState": "AgIAAAYBAAAAAAAAAADwvxcBAABsAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-11-18T14:10:33.999Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
               "Title": "ShortcutKey.cs",
               "DocumentMoniker": "D:\\Unity\\Projects\\htn\\genie\\Assets\\CoreLogic\\Scripts\\UI Scripts\\ShortcutKey.cs",
               "RelativeDocumentMoniker": "Assets\\CoreLogic\\Scripts\\UI Scripts\\ShortcutKey.cs",
               "ToolTip": "D:\\Unity\\Projects\\htn\\genie\\Assets\\CoreLogic\\Scripts\\UI Scripts\\ShortcutKey.cs",
               "RelativeToolTip": "Assets\\CoreLogic\\Scripts\\UI Scripts\\ShortcutKey.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-11-15T10:13:21.95Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-11-15T10:13:21.95Z"
             }
           ]
         }

@@ -275,8 +275,9 @@ public class BeerPongStationBuilder : MonoBehaviour
         ballManager = ball.AddComponent<BallManager>();
 
         // XRI Grabbable for VR hand tracking & controller grab
+        // XRI Grabbable for VR hand tracking & controller grab
         var grab = ball.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRGrabInteractable>();
-        grab.movementType = UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable.MovementType.VelocityTracking;
+        // Note: movementType is handled by interaction manager / movement settings in current XRI versions.        grab.movementType = UnityEngine.XR.Interaction.Toolkit.Interactables.XRBaseInteractable.MovementType.VelocityTracking;
 
         return ball;
     }
