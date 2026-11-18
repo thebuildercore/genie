@@ -49,8 +49,21 @@ public class IntroSequenceManager : MonoBehaviour
     [Tooltip("Used if transparencyMode is set to CustomColor.")]
     public Color customTransparentColor = new Color(0f, 0f, 0f, 0f);
 
-    [Tooltip("Border / Accent tint for Kinexus neon glow aesthetic.")]
-    public Color neonAccentColor = new Color(0.48f, 0.75f, 1.0f, 0.85f);
+    [Tooltip("Border / Accent tint for Kinexus glow aesthetic (Quest 3 Glowy White).")]
+    public Color neonAccentColor = new Color(1.0f, 1.0f, 1.0f, 0.95f);
+
+    [Header("Game Launch Integration")]
+    [Tooltip("Scene name for Cocasnap puzzle game.")]
+    public string cocasnapSceneName = "_TheCocoaSnap";
+    [Tooltip("Scene name for Beer Pong game.")]
+    public string beerPongSceneName = "_BeerPong";
+    [Tooltip("Optional in-scene root for Cocasnap game objects.")]
+    public GameObject cocasnapInSceneRoot;
+    [Tooltip("Optional in-scene root for Beer Pong game objects.")]
+    public GameObject beerPongInSceneRoot;
+
+    public UnityEngine.Events.UnityEvent onEnterCocasnap;
+    public UnityEngine.Events.UnityEvent onEnterBeerPong;
 
     [Header("Auto UI Builder")]
     [Tooltip("If true, automatically builds both Welcome screen and Discover Games screen if missing.")]
@@ -311,41 +324,39 @@ public class IntroSequenceManager : MonoBehaviour
         if (enterArenaPanel == null) return;
 
         Transform existingCards = enterArenaPanel.transform.Find("TutorialCardsContainer");
-        if (existingCards != null && !forceRebuild) return;
+        Transform existingClose = enterArenaPanel.transform.Find("WelcomeCloseButton");
+        if (existingCards != null && existingClose != null && !forceRebuild) return;
 
-        if (existingCards != null && forceRebuild)
-        {
-            DestroyImmediate(existingCards.gameObject);
-        }
+        if (existingCards != null) DestroyImmediate(existingCards.gameObject);
+        if (existingClose != null) DestroyImmediate(existingClose.gameObject);
 
         RectTransform panelRect = enterArenaPanel.GetComponent<RectTransform>();
         if (panelRect != null)
         {
             if (panelRect.sizeDelta.x < 700 || panelRect.sizeDelta.y < 400)
             {
-                panelRect.sizeDelta = new Vector2(900f, 520f);
+                panelRect.sizeDelta = new Vector2(920f, 530f);
             }
         }
 
-        // Header
+        // Header (Luminous Glowy White Quest 3 aesthetic)
         Transform headerTr = enterArenaPanel.transform.Find("KinexusHeader");
-        if (headerTr == null)
-        {
-            GameObject headerObj = new GameObject("KinexusHeader");
-            headerObj.transform.SetParent(enterArenaPanel.transform, false);
-            RectTransform headerRt = headerObj.AddComponent<RectTransform>();
-            headerRt.anchorMin = new Vector2(0.5f, 1f);
-            headerRt.anchorMax = new Vector2(0.5f, 1f);
-            headerRt.pivot = new Vector2(0.5f, 1f);
-            headerRt.anchoredPosition = new Vector2(0f, -25f);
-            headerRt.sizeDelta = new Vector2(750f, 110f);
+        if (headerTr != null) DestroyImmediate(headerTr.gameObject);
 
-            TextMeshProUGUI headerTmp = headerObj.AddComponent<TextMeshProUGUI>();
-            headerTmp.text = "<size=22><color=#A5CCFF>Welcome to</color></size>\n<size=48><b><color=#FFFFFF>Kinexus</color></b></size>\n<size=18><color=#72EFDD>Step into a new reality \u2728</color></size>";
-            headerTmp.alignment = TextAlignmentOptions.Center;
-        }
+        GameObject headerObj = new GameObject("KinexusHeader");
+        headerObj.transform.SetParent(enterArenaPanel.transform, false);
+        RectTransform headerRt = headerObj.AddComponent<RectTransform>();
+        headerRt.anchorMin = new Vector2(0.5f, 1f);
+        headerRt.anchorMax = new Vector2(0.5f, 1f);
+        headerRt.pivot = new Vector2(0.5f, 1f);
+        headerRt.anchoredPosition = new Vector2(0f, -25f);
+        headerRt.sizeDelta = new Vector2(750f, 115f);
 
-        // 3 Cards
+        TextMeshProUGUI headerTmp = headerObj.AddComponent<TextMeshProUGUI>();
+        headerTmp.text = "<size=20><color=#DCE8FF>WELCOME TO</color></size>\n<size=52><b><color=#FFFFFF>KINEXUS</color></b></size>\n<size=17><color=#E6F2FF>Step into a new reality \u2728</color></size>";
+        headerTmp.alignment = TextAlignmentOptions.Center;
+
+        // 3 Glass Cards
         GameObject cardsContainer = new GameObject("TutorialCardsContainer");
         cardsContainer.transform.SetParent(enterArenaPanel.transform, false);
         RectTransform cardsRt = cardsContainer.AddComponent<RectTransform>();
@@ -353,7 +364,7 @@ public class IntroSequenceManager : MonoBehaviour
         cardsRt.anchorMax = new Vector2(0.5f, 0.5f);
         cardsRt.pivot = new Vector2(0.5f, 0.5f);
         cardsRt.anchoredPosition = new Vector2(0f, -15f);
-        cardsRt.sizeDelta = new Vector2(780f, 210f);
+        cardsRt.sizeDelta = new Vector2(800f, 210f);
 
         HorizontalLayoutGroup hlg = cardsContainer.AddComponent<HorizontalLayoutGroup>();
         hlg.spacing = 24f;
@@ -365,48 +376,45 @@ public class IntroSequenceManager : MonoBehaviour
         CreateGlassCard(cardsContainer.transform, "Card_Interact", "\u2726", "Interact", "Pinch to select\nor tap");
         CreateGlassCard(cardsContainer.transform, "Card_Move", "\u25C8", "Move", "Point and teleport\nto explore");
 
-        // Continue Button
-        if (enterArenaButton == null)
-        {
-            Transform existingBtn = enterArenaPanel.transform.Find("ContinueButton");
-            if (existingBtn != null)
-            {
-                enterArenaButton = existingBtn.GetComponent<Button>();
-            }
-            else
-            {
-                GameObject btnObj = new GameObject("ContinueButton");
-                btnObj.transform.SetParent(enterArenaPanel.transform, false);
-                RectTransform btnRt = btnObj.AddComponent<RectTransform>();
-                btnRt.anchorMin = new Vector2(0.5f, 0f);
-                btnRt.anchorMax = new Vector2(0.5f, 0f);
-                btnRt.pivot = new Vector2(0.5f, 0f);
-                btnRt.anchoredPosition = new Vector2(0f, 50f);
-                btnRt.sizeDelta = new Vector2(230f, 52f);
+        // Continue Button (Glowing White Quest 3 styling)
+        Transform existingBtn = enterArenaPanel.transform.Find("ContinueButton");
+        if (existingBtn != null) DestroyImmediate(existingBtn.gameObject);
 
-                Image btnImg = btnObj.AddComponent<Image>();
-                btnImg.color = new Color(0.18f, 0.38f, 0.75f, 0.75f);
+        GameObject btnObj = new GameObject("ContinueButton");
+        btnObj.transform.SetParent(enterArenaPanel.transform, false);
+        RectTransform btnRt = btnObj.AddComponent<RectTransform>();
+        btnRt.anchorMin = new Vector2(0.5f, 0f);
+        btnRt.anchorMax = new Vector2(0.5f, 0f);
+        btnRt.pivot = new Vector2(0.5f, 0f);
+        btnRt.anchoredPosition = new Vector2(0f, 50f);
+        btnRt.sizeDelta = new Vector2(250f, 54f);
 
-                Outline btnOutline = btnObj.AddComponent<Outline>();
-                btnOutline.effectColor = neonAccentColor;
-                btnOutline.effectDistance = new Vector2(2f, -2f);
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(1.0f, 1.0f, 1.0f, 0.22f); // Luminous white frosted capsule
 
-                enterArenaButton = btnObj.AddComponent<Button>();
+        Outline btnOutline = btnObj.AddComponent<Outline>();
+        btnOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.95f); // High-contrast glowing border
+        btnOutline.effectDistance = new Vector2(2.5f, -2.5f);
 
-                GameObject btnTxtObj = new GameObject("ButtonText");
-                btnTxtObj.transform.SetParent(btnObj.transform, false);
-                RectTransform txtRt = btnTxtObj.AddComponent<RectTransform>();
-                txtRt.anchorMin = Vector2.zero;
-                txtRt.anchorMax = Vector2.one;
-                txtRt.sizeDelta = Vector2.zero;
+        enterArenaButton = btnObj.AddComponent<Button>();
+        ColorBlock cb = enterArenaButton.colors;
+        cb.normalColor = Color.white;
+        cb.highlightedColor = new Color(1.0f, 1.0f, 1.0f, 0.45f);
+        cb.pressedColor = new Color(0.9f, 0.95f, 1.0f, 0.65f);
+        enterArenaButton.colors = cb;
 
-                enterArenaButtonText = btnTxtObj.AddComponent<TextMeshProUGUI>();
-                enterArenaButtonText.text = "Continue  \u2192";
-                enterArenaButtonText.fontSize = 21;
-                enterArenaButtonText.alignment = TextAlignmentOptions.Center;
-                enterArenaButtonText.color = Color.white;
-            }
-        }
+        GameObject btnTxtObj = new GameObject("ButtonText");
+        btnTxtObj.transform.SetParent(btnObj.transform, false);
+        RectTransform txtRt = btnTxtObj.AddComponent<RectTransform>();
+        txtRt.anchorMin = Vector2.zero;
+        txtRt.anchorMax = Vector2.one;
+        txtRt.sizeDelta = Vector2.zero;
+
+        enterArenaButtonText = btnTxtObj.AddComponent<TextMeshProUGUI>();
+        enterArenaButtonText.text = "<b>Continue  \u2192</b>";
+        enterArenaButtonText.fontSize = 21;
+        enterArenaButtonText.alignment = TextAlignmentOptions.Center;
+        enterArenaButtonText.color = Color.white;
 
         // Pager Dots
         Transform pagerTr = enterArenaPanel.transform.Find("PagerDots");
@@ -422,17 +430,13 @@ public class IntroSequenceManager : MonoBehaviour
             pagerRt.sizeDelta = new Vector2(200f, 25f);
 
             TextMeshProUGUI pagerTmp = pagerObj.AddComponent<TextMeshProUGUI>();
-            pagerTmp.text = "<color=#7EB6FF>\u25CF</color>  <color=#406288>\u25CB  \u25CB</color>";
+            pagerTmp.text = "<color=#FFFFFF>\u25CF</color>  <color=#8EB8EE>\u25CB  \u25CB</color>";
             pagerTmp.fontSize = 18;
             pagerTmp.alignment = TextAlignmentOptions.Center;
         }
 
-        // Close Button (removes Welcome panel)
-        Transform existingClose = enterArenaPanel.transform.Find("WelcomeCloseButton");
-        if (existingClose == null)
-        {
-            CreateCloseButton(enterArenaPanel.transform, "WelcomeCloseButton", new Vector2(-25f, -25f), CloseWelcomePanel);
-        }
+        // Close Button (at top-right of Welcome panel with glowing white aesthetic)
+        CreateCloseButton(enterArenaPanel.transform, "WelcomeCloseButton", new Vector2(-28f, -28f), CloseWelcomePanel);
 
         WireButton();
     }
@@ -442,13 +446,13 @@ public class IntroSequenceManager : MonoBehaviour
         GameObject cardObj = new GameObject(cardName);
         cardObj.transform.SetParent(parent, false);
         RectTransform cardRt = cardObj.AddComponent<RectTransform>();
-        cardRt.sizeDelta = new Vector2(230f, 190f);
+        cardRt.sizeDelta = new Vector2(236f, 195f);
 
         Image cardImg = cardObj.AddComponent<Image>();
-        cardImg.color = new Color(0.06f, 0.12f, 0.22f, 0.50f);
+        cardImg.color = new Color(0.06f, 0.10f, 0.18f, 0.65f);
 
         Outline cardOutline = cardObj.AddComponent<Outline>();
-        cardOutline.effectColor = new Color(0.48f, 0.75f, 1.0f, 0.60f);
+        cardOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.90f); // Glowing white border
         cardOutline.effectDistance = new Vector2(2f, -2f);
 
         // Icon
@@ -464,6 +468,7 @@ public class IntroSequenceManager : MonoBehaviour
         TextMeshProUGUI iconTmp = iconObj.AddComponent<TextMeshProUGUI>();
         iconTmp.text = iconSymbol;
         iconTmp.fontSize = 32;
+        iconTmp.color = Color.white;
         iconTmp.alignment = TextAlignmentOptions.Center;
 
         // Title
@@ -495,7 +500,7 @@ public class IntroSequenceManager : MonoBehaviour
         TextMeshProUGUI descTmp = descObj.AddComponent<TextMeshProUGUI>();
         descTmp.text = description;
         descTmp.fontSize = 14;
-        descTmp.color = new Color(0.72f, 0.84f, 0.95f, 0.90f);
+        descTmp.color = new Color(0.90f, 0.94f, 1.0f, 0.95f);
         descTmp.alignment = TextAlignmentOptions.Center;
     }
 
@@ -543,17 +548,18 @@ public class IntroSequenceManager : MonoBehaviour
         }
 
         Transform existingLayout = gameSelectionPanel.transform.Find("DiscoverGamesLayout");
-        if (existingLayout != null && !forceRebuild) return;
+        Transform existingCocasnap = gameSelectionPanel.transform.Find("DiscoverGamesLayout/GameCardsCarousel/Card_Cocasnap");
+        Transform existingClose = gameSelectionPanel.transform.Find("DiscoverCloseButton");
 
-        if (existingLayout != null && forceRebuild)
-        {
-            DestroyImmediate(existingLayout.gameObject);
-        }
+        if (existingLayout != null && existingCocasnap != null && existingClose != null && !forceRebuild) return;
+
+        if (existingLayout != null) DestroyImmediate(existingLayout.gameObject);
+        if (existingClose != null) DestroyImmediate(existingClose.gameObject);
 
         RectTransform panelRt = gameSelectionPanel.GetComponent<RectTransform>();
         if (panelRt != null)
         {
-            panelRt.sizeDelta = new Vector2(1100f, 620f);
+            panelRt.sizeDelta = new Vector2(1120f, 630f);
         }
 
         GameObject root = new GameObject("DiscoverGamesLayout");
@@ -563,24 +569,20 @@ public class IntroSequenceManager : MonoBehaviour
         rootRt.anchorMax = Vector2.one;
         rootRt.sizeDelta = Vector2.zero;
 
-        // 1. Sidebar Dock
+        // 1. Sidebar Dock (Glowing White Quest 3 theme)
         CreateSidebar(root.transform);
 
-        // 2. Top Bar
+        // 2. Top Bar (Glowing White Quest 3 theme)
         CreateTopBar(root.transform);
 
-        // 3. Carousel
+        // 3. Carousel with Cocasnap & Beer Pong Game Cards
         CreateGameCarousel(root.transform);
 
-        // 4. Bottom Widgets
+        // 4. Bottom Widgets (Glowing White Quest 3 theme)
         CreateBottomWidgets(root.transform);
 
-        // Close Button (removes Discover Games panel)
-        Transform existingClose = gameSelectionPanel.transform.Find("DiscoverCloseButton");
-        if (existingClose == null)
-        {
-            CreateCloseButton(gameSelectionPanel.transform, "DiscoverCloseButton", new Vector2(-25f, -25f), CloseGameSelectionPanel);
-        }
+        // Close Button at top-right of Discover Games panel
+        CreateCloseButton(gameSelectionPanel.transform, "DiscoverCloseButton", new Vector2(-28f, -28f), CloseGameSelectionPanel);
     }
 
     private void CreateSidebar(Transform parent)
@@ -595,10 +597,10 @@ public class IntroSequenceManager : MonoBehaviour
         sbRt.sizeDelta = new Vector2(170f, 480f);
 
         Image sbImg = sidebar.AddComponent<Image>();
-        sbImg.color = new Color(0.05f, 0.09f, 0.16f, 0.55f);
+        sbImg.color = new Color(0.05f, 0.08f, 0.15f, 0.65f);
 
         Outline sbOutline = sidebar.AddComponent<Outline>();
-        sbOutline.effectColor = neonAccentColor;
+        sbOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f); // Glowing white
         sbOutline.effectDistance = new Vector2(2f, -2f);
 
         GameObject logoObj = new GameObject("Logo");
@@ -611,7 +613,7 @@ public class IntroSequenceManager : MonoBehaviour
         logoRt.sizeDelta = new Vector2(140f, 40f);
 
         TextMeshProUGUI logoTmp = logoObj.AddComponent<TextMeshProUGUI>();
-        logoTmp.text = "\u2728 <b>Kinexus</b>";
+        logoTmp.text = "\u2728 <b>KINEXUS</b>";
         logoTmp.fontSize = 20;
         logoTmp.color = Color.white;
         logoTmp.alignment = TextAlignmentOptions.Center;
@@ -631,8 +633,8 @@ public class IntroSequenceManager : MonoBehaviour
         vlg.childControlWidth = true;
         vlg.childControlHeight = false;
 
-        CreateSidebarItem(menuObj.transform, "\uD83C\uDFE0 Home", isActive: true);
-        CreateSidebarItem(menuObj.transform, "\uD83C\uDFAE Games", isActive: false);
+        CreateSidebarItem(menuObj.transform, "\uD83C\uDFE0 Home", isActive: false);
+        CreateSidebarItem(menuObj.transform, "\uD83C\uDFAE Games", isActive: true);
         CreateSidebarItem(menuObj.transform, "\uD83C\uDFC6 Leaderboard", isActive: false);
         CreateSidebarItem(menuObj.transform, "\u2B50 Rewards", isActive: false);
         CreateSidebarItem(menuObj.transform, "\u2699\uFE0F Settings", isActive: false);
@@ -646,10 +648,10 @@ public class IntroSequenceManager : MonoBehaviour
         rt.sizeDelta = new Vector2(140f, 44f);
 
         Image img = item.AddComponent<Image>();
-        img.color = isActive ? new Color(0.20f, 0.42f, 0.85f, 0.80f) : new Color(0.08f, 0.14f, 0.24f, 0.35f);
+        img.color = isActive ? new Color(1.0f, 1.0f, 1.0f, 0.22f) : new Color(0.08f, 0.12f, 0.20f, 0.35f);
 
         Outline outline = item.AddComponent<Outline>();
-        outline.effectColor = isActive ? neonAccentColor : new Color(0.3f, 0.5f, 0.8f, 0.3f);
+        outline.effectColor = isActive ? new Color(1.0f, 1.0f, 1.0f, 0.95f) : new Color(1.0f, 1.0f, 1.0f, 0.35f);
         outline.effectDistance = new Vector2(1.5f, -1.5f);
 
         GameObject txtObj = new GameObject("Text");
@@ -662,7 +664,7 @@ public class IntroSequenceManager : MonoBehaviour
         TextMeshProUGUI tmp = txtObj.AddComponent<TextMeshProUGUI>();
         tmp.text = label;
         tmp.fontSize = 15;
-        tmp.color = isActive ? Color.white : new Color(0.75f, 0.85f, 0.95f, 0.80f);
+        tmp.color = isActive ? Color.white : new Color(0.85f, 0.92f, 1.0f, 0.85f);
         tmp.alignment = TextAlignmentOptions.MidlineLeft;
     }
 
@@ -675,10 +677,10 @@ public class IntroSequenceManager : MonoBehaviour
         titleRt.anchorMax = new Vector2(0.55f, 1f);
         titleRt.pivot = new Vector2(0.5f, 1f);
         titleRt.anchoredPosition = new Vector2(0f, -22f);
-        titleRt.sizeDelta = new Vector2(500f, 75f);
+        titleRt.sizeDelta = new Vector2(550f, 75f);
 
         TextMeshProUGUI titleTmp = titleObj.AddComponent<TextMeshProUGUI>();
-        titleTmp.text = "<size=34><b>Discover Your Next Game \u2728</b></size>\n<size=16><color=#72EFDD>Play  \u2022  Explore  \u2022  Earn</color></size>";
+        titleTmp.text = "<size=32><b><color=#FFFFFF>Choose Your Arena \u2728</color></b></size>\n<size=15><color=#DCE8FF>Select a game below to enter</color></size>";
         titleTmp.alignment = TextAlignmentOptions.Center;
 
         GameObject searchObj = new GameObject("SearchBar");
@@ -691,10 +693,10 @@ public class IntroSequenceManager : MonoBehaviour
         searchRt.sizeDelta = new Vector2(170f, 38f);
 
         Image searchImg = searchObj.AddComponent<Image>();
-        searchImg.color = new Color(0.08f, 0.14f, 0.24f, 0.60f);
+        searchImg.color = new Color(1.0f, 1.0f, 1.0f, 0.12f);
 
         Outline searchOutline = searchObj.AddComponent<Outline>();
-        searchOutline.effectColor = neonAccentColor;
+        searchOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
         searchOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
         GameObject sTxtObj = new GameObject("Text");
@@ -707,7 +709,7 @@ public class IntroSequenceManager : MonoBehaviour
         TextMeshProUGUI sTmp = sTxtObj.AddComponent<TextMeshProUGUI>();
         sTmp.text = "\uD83D\uDD0D Search games...";
         sTmp.fontSize = 13;
-        sTmp.color = new Color(0.70f, 0.82f, 0.95f, 0.70f);
+        sTmp.color = new Color(0.85f, 0.92f, 1.0f, 0.85f);
         sTmp.alignment = TextAlignmentOptions.MidlineLeft;
 
         GameObject profileObj = new GameObject("ProfileAvatar");
@@ -720,10 +722,10 @@ public class IntroSequenceManager : MonoBehaviour
         profRt.sizeDelta = new Vector2(40f, 40f);
 
         Image profImg = profileObj.AddComponent<Image>();
-        profImg.color = new Color(0.12f, 0.20f, 0.35f, 0.70f);
+        profImg.color = new Color(1.0f, 1.0f, 1.0f, 0.15f);
 
         Outline profOutline = profileObj.AddComponent<Outline>();
-        profOutline.effectColor = neonAccentColor;
+        profOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
         profOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
         GameObject pTxtObj = new GameObject("Icon");
@@ -736,6 +738,7 @@ public class IntroSequenceManager : MonoBehaviour
         TextMeshProUGUI pTmp = pTxtObj.AddComponent<TextMeshProUGUI>();
         pTmp.text = "\uD83D\uDC64";
         pTmp.fontSize = 20;
+        pTmp.color = Color.white;
         pTmp.alignment = TextAlignmentOptions.Center;
     }
 
@@ -748,62 +751,47 @@ public class IntroSequenceManager : MonoBehaviour
         carRt.anchorMax = new Vector2(0.57f, 0.5f);
         carRt.pivot = new Vector2(0.5f, 0.5f);
         carRt.anchoredPosition = new Vector2(0f, -10f);
-        carRt.sizeDelta = new Vector2(790f, 330f);
+        carRt.sizeDelta = new Vector2(820f, 370f);
 
-        // 1. Left Card: Velocity Rush
-        CreateShowcaseCard(carousel.transform, "Card_VelocityRush",
-            badge: "\uD83D\uDD25 Trending",
-            title: "Velocity Rush",
-            subtitle: "Race. Drift. Win.",
-            isFeatured: false,
-            pos: new Vector2(-260f, 0f),
-            size: new Vector2(230f, 290f),
-            bgColor: new Color(0.08f, 0.12f, 0.25f, 0.65f)
+        // 1. Cocasnap Game Card
+        CreateGameCard(carousel.transform, "Card_Cocasnap",
+            badge: "🧩 3D Puzzle Challenge",
+            title: "Cocasnap",
+            subtitle: "Snap, match & solve the 3D cube puzzle with your companion robot!",
+            buttonLabel: "Enter Cocasnap  \u2794",
+            pos: new Vector2(-195f, 0f),
+            size: new Vector2(360f, 350f),
+            onEnterAction: LaunchCocasnap
         );
 
-        // 2. Center Card (Featured): Skyward Quest
-        CreateShowcaseCard(carousel.transform, "Card_SkywardQuest",
-            badge: "\u2B50 New",
-            title: "Skyward Quest",
-            subtitle: "Embark on a journey beyond the clouds",
-            isFeatured: true,
-            pos: new Vector2(0f, 0f),
-            size: new Vector2(260f, 320f),
-            bgColor: new Color(0.10f, 0.18f, 0.35f, 0.75f)
+        // 2. Beer Pong Game Card
+        CreateGameCard(carousel.transform, "Card_BeerPong",
+            badge: "🏓 Physics Arcade",
+            title: "Beer Pong",
+            subtitle: "Aim your toss, bounce the ping-pong balls & sink them into the red cups!",
+            buttonLabel: "Enter Beer Pong  \u2794",
+            pos: new Vector2(195f, 0f),
+            size: new Vector2(360f, 350f),
+            onEnterAction: LaunchBeerPong
         );
 
-        // 3. Right Card: Pet Paradise
-        CreateShowcaseCard(carousel.transform, "Card_PetParadise",
-            badge: "\u2B50 Popular",
-            title: "Pet Paradise",
-            subtitle: "Care. Play. Grow.",
-            isFeatured: false,
-            pos: new Vector2(260f, 0f),
-            size: new Vector2(230f, 290f),
-            bgColor: new Color(0.08f, 0.14f, 0.22f, 0.65f)
-        );
-
-        // Navigation Arrows
-        CreateNavArrow(carousel.transform, "\u27E8", new Vector2(-390f, 0f));
-        CreateNavArrow(carousel.transform, "\u27E9", new Vector2(390f, 0f));
-
-        // Pager Dots
+        // Pager indicator
         GameObject dotsObj = new GameObject("CarouselDots");
         dotsObj.transform.SetParent(carousel.transform, false);
         RectTransform dotsRt = dotsObj.AddComponent<RectTransform>();
         dotsRt.anchorMin = new Vector2(0.5f, 0f);
         dotsRt.anchorMax = new Vector2(0.5f, 0f);
         dotsRt.pivot = new Vector2(0.5f, 0f);
-        dotsRt.anchoredPosition = new Vector2(0f, -22f);
+        dotsRt.anchoredPosition = new Vector2(0f, -24f);
         dotsRt.sizeDelta = new Vector2(200f, 20f);
 
         TextMeshProUGUI dotsTmp = dotsObj.AddComponent<TextMeshProUGUI>();
-        dotsTmp.text = "<color=#406288>\u25CB</color>  <color=#7EB6FF>\u25CF</color>  <color=#406288>\u25CB  \u25CB</color>";
-        dotsTmp.fontSize = 16;
+        dotsTmp.text = "<color=#FFFFFF>\u25CF</color>    <color=#A5CCFF>\u25CF</color>";
+        dotsTmp.fontSize = 18;
         dotsTmp.alignment = TextAlignmentOptions.Center;
     }
 
-    private void CreateShowcaseCard(Transform parent, string name, string badge, string title, string subtitle, bool isFeatured, Vector2 pos, Vector2 size, Color bgColor)
+    private void CreateGameCard(Transform parent, string name, string badge, string title, string subtitle, string buttonLabel, Vector2 pos, Vector2 size, UnityEngine.Events.UnityAction onEnterAction)
     {
         GameObject card = new GameObject(name);
         card.transform.SetParent(parent, false);
@@ -811,29 +799,30 @@ public class IntroSequenceManager : MonoBehaviour
         rt.anchoredPosition = pos;
         rt.sizeDelta = size;
 
+        // Frosted dark glass with luminous white glow
         Image img = card.AddComponent<Image>();
-        img.color = bgColor;
+        img.color = new Color(0.06f, 0.10f, 0.18f, 0.70f);
 
         Outline outline = card.AddComponent<Outline>();
-        outline.effectColor = isFeatured ? new Color(0.48f, 0.78f, 1.0f, 0.95f) : new Color(0.35f, 0.55f, 0.85f, 0.50f);
-        outline.effectDistance = isFeatured ? new Vector2(3f, -3f) : new Vector2(2f, -2f);
+        outline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.95f); // Glowing white border
+        outline.effectDistance = new Vector2(2.5f, -2.5f);
 
-        // Badge
+        // Badge at top
         GameObject badgeObj = new GameObject("Badge");
         badgeObj.transform.SetParent(card.transform, false);
         RectTransform badgeRt = badgeObj.AddComponent<RectTransform>();
-        badgeRt.anchorMin = new Vector2(1f, 1f);
-        badgeRt.anchorMax = new Vector2(1f, 1f);
-        badgeRt.pivot = new Vector2(1f, 1f);
-        badgeRt.anchoredPosition = new Vector2(-12f, -12f);
-        badgeRt.sizeDelta = new Vector2(90f, 26f);
+        badgeRt.anchorMin = new Vector2(0.5f, 1f);
+        badgeRt.anchorMax = new Vector2(0.5f, 1f);
+        badgeRt.pivot = new Vector2(0.5f, 1f);
+        badgeRt.anchoredPosition = new Vector2(0f, -16f);
+        badgeRt.sizeDelta = new Vector2(250f, 32f);
 
         Image bImg = badgeObj.AddComponent<Image>();
-        bImg.color = new Color(0.12f, 0.18f, 0.30f, 0.80f);
+        bImg.color = new Color(1.0f, 1.0f, 1.0f, 0.18f);
 
         Outline bOutline = badgeObj.AddComponent<Outline>();
-        bOutline.effectColor = neonAccentColor;
-        bOutline.effectDistance = new Vector2(1f, -1f);
+        bOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
+        bOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
         GameObject bTxt = new GameObject("Text");
         bTxt.transform.SetParent(badgeObj.transform, false);
@@ -844,97 +833,62 @@ public class IntroSequenceManager : MonoBehaviour
 
         TextMeshProUGUI bTmp = bTxt.AddComponent<TextMeshProUGUI>();
         bTmp.text = badge;
-        bTmp.fontSize = 12;
+        bTmp.fontSize = 13;
+        bTmp.fontStyle = FontStyles.Bold;
         bTmp.color = Color.white;
         bTmp.alignment = TextAlignmentOptions.Center;
 
-        // Title & Subtitle
+        // Game Title & Subtitle
         GameObject infoObj = new GameObject("InfoBlock");
         infoObj.transform.SetParent(card.transform, false);
         RectTransform infoRt = infoObj.AddComponent<RectTransform>();
-        infoRt.anchorMin = new Vector2(0f, 0f);
-        infoRt.anchorMax = new Vector2(1f, 0f);
-        infoRt.pivot = new Vector2(0.5f, 0f);
-        infoRt.anchoredPosition = new Vector2(0f, isFeatured ? 55f : 15f);
-        infoRt.sizeDelta = new Vector2(-24f, 65f);
+        infoRt.anchorMin = new Vector2(0.5f, 0.5f);
+        infoRt.anchorMax = new Vector2(0.5f, 0.5f);
+        infoRt.pivot = new Vector2(0.5f, 0.5f);
+        infoRt.anchoredPosition = new Vector2(0f, 22f);
+        infoRt.sizeDelta = new Vector2(320f, 110f);
 
         TextMeshProUGUI infoTmp = infoObj.AddComponent<TextMeshProUGUI>();
-        infoTmp.text = $"<size={(isFeatured ? 21 : 18)}><b>{title}</b></size>\n<size=12><color=#A0BDDD>{subtitle}</color></size>";
-        infoTmp.alignment = TextAlignmentOptions.BottomLeft;
+        infoTmp.text = $"<size=30><b><color=#FFFFFF>{title}</color></b></size>\n\n<size=14><color=#E6F0FF>{subtitle}</color></size>";
+        infoTmp.alignment = TextAlignmentOptions.Center;
 
-        // Play Button
-        GameObject playBtn = new GameObject("PlayButton");
-        playBtn.transform.SetParent(card.transform, false);
-        RectTransform pbRt = playBtn.AddComponent<RectTransform>();
-        if (isFeatured)
-        {
-            pbRt.anchorMin = new Vector2(0.5f, 0f);
-            pbRt.anchorMax = new Vector2(0.5f, 0f);
-            pbRt.pivot = new Vector2(0.5f, 0f);
-            pbRt.anchoredPosition = new Vector2(0f, 14f);
-            pbRt.sizeDelta = new Vector2(130f, 36f);
-        }
-        else
-        {
-            pbRt.anchorMin = new Vector2(1f, 0f);
-            pbRt.anchorMax = new Vector2(1f, 0f);
-            pbRt.pivot = new Vector2(1f, 0f);
-            pbRt.anchoredPosition = new Vector2(-12f, 15f);
-            pbRt.sizeDelta = new Vector2(36f, 36f);
-        }
+        // Enter Game Button (below card contents)
+        GameObject enterBtn = new GameObject("EnterButton");
+        enterBtn.transform.SetParent(card.transform, false);
+        RectTransform ebRt = enterBtn.AddComponent<RectTransform>();
+        ebRt.anchorMin = new Vector2(0.5f, 0f);
+        ebRt.anchorMax = new Vector2(0.5f, 0f);
+        ebRt.pivot = new Vector2(0.5f, 0f);
+        ebRt.anchoredPosition = new Vector2(0f, 24f);
+        ebRt.sizeDelta = new Vector2(280f, 52f);
 
-        Image pbImg = playBtn.AddComponent<Image>();
-        pbImg.color = new Color(0.22f, 0.44f, 0.90f, 0.85f);
+        Image ebImg = enterBtn.AddComponent<Image>();
+        ebImg.color = new Color(1.0f, 1.0f, 1.0f, 0.25f); // Glowing white translucent capsule
 
-        Outline pbOutline = playBtn.AddComponent<Outline>();
-        pbOutline.effectColor = neonAccentColor;
-        pbOutline.effectDistance = new Vector2(1.5f, -1.5f);
+        Outline ebOutline = enterBtn.AddComponent<Outline>();
+        ebOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.95f); // High-contrast glowing border
+        ebOutline.effectDistance = new Vector2(2f, -2f);
 
-        playBtn.AddComponent<Button>();
+        Button btn = enterBtn.AddComponent<Button>();
+        ColorBlock btnCb = btn.colors;
+        btnCb.normalColor = Color.white;
+        btnCb.highlightedColor = new Color(1.0f, 1.0f, 1.0f, 0.45f);
+        btnCb.pressedColor = new Color(0.9f, 0.95f, 1.0f, 0.70f);
+        btn.colors = btnCb;
+        btn.onClick.AddListener(onEnterAction);
 
-        GameObject pbTxt = new GameObject("Text");
-        pbTxt.transform.SetParent(playBtn.transform, false);
-        RectTransform pbTxtRt = pbTxt.AddComponent<RectTransform>();
-        pbTxtRt.anchorMin = Vector2.zero;
-        pbTxtRt.anchorMax = Vector2.one;
-        pbTxtRt.sizeDelta = Vector2.zero;
+        GameObject ebTxt = new GameObject("Text");
+        ebTxt.transform.SetParent(enterBtn.transform, false);
+        RectTransform ebTxtRt = ebTxt.AddComponent<RectTransform>();
+        ebTxtRt.anchorMin = Vector2.zero;
+        ebTxtRt.anchorMax = Vector2.one;
+        ebTxtRt.sizeDelta = Vector2.zero;
 
-        TextMeshProUGUI pbTmp = pbTxt.AddComponent<TextMeshProUGUI>();
-        pbTmp.text = isFeatured ? "Play  \u25B6" : "\u25B6";
-        pbTmp.fontSize = 15;
-        pbTmp.color = Color.white;
-        pbTmp.alignment = TextAlignmentOptions.Center;
-    }
-
-    private void CreateNavArrow(Transform parent, string arrowSymbol, Vector2 pos)
-    {
-        GameObject arrowObj = new GameObject("Arrow_" + arrowSymbol);
-        arrowObj.transform.SetParent(parent, false);
-        RectTransform rt = arrowObj.AddComponent<RectTransform>();
-        rt.anchoredPosition = pos;
-        rt.sizeDelta = new Vector2(36f, 36f);
-
-        Image img = arrowObj.AddComponent<Image>();
-        img.color = new Color(0.08f, 0.14f, 0.25f, 0.60f);
-
-        Outline outline = arrowObj.AddComponent<Outline>();
-        outline.effectColor = neonAccentColor;
-        outline.effectDistance = new Vector2(1f, -1f);
-
-        arrowObj.AddComponent<Button>();
-
-        GameObject txt = new GameObject("Text");
-        txt.transform.SetParent(arrowObj.transform, false);
-        RectTransform txtRt = txt.AddComponent<RectTransform>();
-        txtRt.anchorMin = Vector2.zero;
-        txtRt.anchorMax = Vector2.one;
-        txtRt.sizeDelta = Vector2.zero;
-
-        TextMeshProUGUI tmp = txt.AddComponent<TextMeshProUGUI>();
-        tmp.text = arrowSymbol;
-        tmp.fontSize = 20;
-        tmp.color = Color.white;
-        tmp.alignment = TextAlignmentOptions.Center;
+        TextMeshProUGUI ebTmp = ebTxt.AddComponent<TextMeshProUGUI>();
+        ebTmp.text = $"<b>{buttonLabel}</b>";
+        ebTmp.fontSize = 18;
+        ebTmp.color = Color.white;
+        ebTmp.alignment = TextAlignmentOptions.Center;
     }
 
     private void CreateBottomWidgets(Transform parent)
@@ -949,10 +903,10 @@ public class IntroSequenceManager : MonoBehaviour
         qRt.sizeDelta = new Vector2(320f, 44f);
 
         Image qImg = questObj.AddComponent<Image>();
-        qImg.color = new Color(0.08f, 0.14f, 0.25f, 0.60f);
+        qImg.color = new Color(1.0f, 1.0f, 1.0f, 0.12f);
 
         Outline qOutline = questObj.AddComponent<Outline>();
-        qOutline.effectColor = neonAccentColor;
+        qOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
         qOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
         GameObject qTxt = new GameObject("Text");
@@ -965,7 +919,7 @@ public class IntroSequenceManager : MonoBehaviour
         TextMeshProUGUI qTmp = qTxt.AddComponent<TextMeshProUGUI>();
         qTmp.text = "\uD83C\uDF81  Complete quests to earn exclusive rewards!  \u27E9";
         qTmp.fontSize = 12;
-        qTmp.color = new Color(0.85f, 0.92f, 1.0f, 0.90f);
+        qTmp.color = new Color(0.90f, 0.94f, 1.0f, 0.95f);
         qTmp.alignment = TextAlignmentOptions.Center;
 
         GameObject balObj = new GameObject("BalancePill");
@@ -978,10 +932,10 @@ public class IntroSequenceManager : MonoBehaviour
         bRt.sizeDelta = new Vector2(190f, 44f);
 
         Image bImg = balObj.AddComponent<Image>();
-        bImg.color = new Color(0.08f, 0.14f, 0.25f, 0.60f);
+        bImg.color = new Color(1.0f, 1.0f, 1.0f, 0.12f);
 
         Outline bOutline = balObj.AddComponent<Outline>();
-        bOutline.effectColor = neonAccentColor;
+        bOutline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.85f);
         bOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
         GameObject bTxt = new GameObject("Text");
@@ -1080,8 +1034,77 @@ public class IntroSequenceManager : MonoBehaviour
     }
 
     // =========================================================
-    // PANEL DISMISSAL / CLOSE BUTTONS
+    // GAME LAUNCHERS & PANEL DISMISSAL
     // =========================================================
+
+    /// <summary>
+    /// Launches the Cocasnap game and immediately dismisses all panels from the screen.
+    /// </summary>
+    public void LaunchCocasnap()
+    {
+        Debug.Log("IntroSequenceManager: Launching Cocasnap Game!");
+        CloseAllPanels();
+
+        onEnterCocasnap?.Invoke();
+
+        // 1. If in-scene game object assigned, enable it
+        if (cocasnapInSceneRoot != null)
+        {
+            cocasnapInSceneRoot.SetActive(true);
+            if (beerPongInSceneRoot != null) beerPongInSceneRoot.SetActive(false);
+        }
+        else
+        {
+            // Auto-detect and activate Cocasnap components in scene
+            PuzzleLogic puzzle = Object.FindFirstObjectByType<PuzzleLogic>(FindObjectsInactive.Include);
+            if (puzzle != null) puzzle.gameObject.SetActive(true);
+
+            CubeResetter resetter = Object.FindFirstObjectByType<CubeResetter>(FindObjectsInactive.Include);
+            if (resetter != null) resetter.gameObject.SetActive(true);
+        }
+
+        TryLoadScene(cocasnapSceneName);
+    }
+
+    /// <summary>
+    /// Launches the Beer Pong game and immediately dismisses all panels from the screen.
+    /// </summary>
+    public void LaunchBeerPong()
+    {
+        Debug.Log("IntroSequenceManager: Launching Beer Pong Game!");
+        CloseAllPanels();
+
+        onEnterBeerPong?.Invoke();
+
+        // 1. If in-scene game object assigned, enable it
+        if (beerPongInSceneRoot != null)
+        {
+            beerPongInSceneRoot.SetActive(true);
+            if (cocasnapInSceneRoot != null) cocasnapInSceneRoot.SetActive(false);
+        }
+        else
+        {
+            // Auto-detect and activate Beer Pong components in scene
+            BeerPongScoreManager bpScore = Object.FindFirstObjectByType<BeerPongScoreManager>(FindObjectsInactive.Include);
+            if (bpScore != null) bpScore.gameObject.SetActive(true);
+
+            BallManager ballMgr = Object.FindFirstObjectByType<BallManager>(FindObjectsInactive.Include);
+            if (ballMgr != null) ballMgr.gameObject.SetActive(true);
+        }
+
+        TryLoadScene(beerPongSceneName);
+    }
+
+    /// <summary>
+    /// Closes all panels and subtitles, making UI completely disappear from the screen.
+    /// </summary>
+    public void CloseAllPanels()
+    {
+        Debug.Log("IntroSequenceManager: Dismissing all panels from screen.");
+        if (enterArenaPanel != null) enterArenaPanel.SetActive(false);
+        if (gameSelectionPanel != null) gameSelectionPanel.SetActive(false);
+        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+    }
 
     /// <summary>
     /// Closes and removes the Welcome tutorial panel.
@@ -1089,18 +1112,32 @@ public class IntroSequenceManager : MonoBehaviour
     public void CloseWelcomePanel()
     {
         Debug.Log("IntroSequenceManager: Closed Welcome panel.");
-        if (enterArenaPanel != null) enterArenaPanel.SetActive(false);
-        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+        CloseAllPanels();
     }
 
     /// <summary>
-    /// Closes and removes the Discover Your Next Game panel, freeing view of the arena.
+    /// Closes and removes the Discover Your Next Game panel.
     /// </summary>
     public void CloseGameSelectionPanel()
     {
         Debug.Log("IntroSequenceManager: Closed Game Selection panel.");
-        if (gameSelectionPanel != null) gameSelectionPanel.SetActive(false);
-        if (subtitlePanel != null) subtitlePanel.SetActive(false);
+        CloseAllPanels();
+    }
+
+    private void TryLoadScene(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName)) return;
+
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings; i++)
+        {
+            string path = UnityEngine.SceneManagement.SceneUtility.GetScenePathByBuildIndex(i);
+            string name = System.IO.Path.GetFileNameWithoutExtension(path);
+            if (string.Equals(name, sceneName, System.StringComparison.OrdinalIgnoreCase))
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(sceneName);
+                return;
+            }
+        }
     }
 
     private GameObject CreateCloseButton(Transform parent, string name, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClickAction)
@@ -1112,20 +1149,20 @@ public class IntroSequenceManager : MonoBehaviour
         rt.anchorMax = new Vector2(1f, 1f);
         rt.pivot = new Vector2(1f, 1f);
         rt.anchoredPosition = anchoredPos;
-        rt.sizeDelta = new Vector2(38f, 38f);
+        rt.sizeDelta = new Vector2(44f, 44f); // Comfortable Quest 3 poke/click target
 
         Image img = closeObj.AddComponent<Image>();
-        img.color = new Color(0.12f, 0.20f, 0.35f, 0.85f);
+        img.color = new Color(1.0f, 1.0f, 1.0f, 0.16f); // Frosted luminous white glass
 
         Outline outline = closeObj.AddComponent<Outline>();
-        outline.effectColor = neonAccentColor;
-        outline.effectDistance = new Vector2(1.5f, -1.5f);
+        outline.effectColor = new Color(1.0f, 1.0f, 1.0f, 0.95f); // Glowing white border
+        outline.effectDistance = new Vector2(2f, -2f);
 
         Button btn = closeObj.AddComponent<Button>();
         ColorBlock cb = btn.colors;
         cb.normalColor = Color.white;
-        cb.highlightedColor = new Color(1f, 0.4f, 0.4f, 1f);
-        cb.pressedColor = new Color(0.9f, 0.2f, 0.2f, 1f);
+        cb.highlightedColor = new Color(1.0f, 1.0f, 1.0f, 0.45f);
+        cb.pressedColor = new Color(0.9f, 0.95f, 1.0f, 0.70f);
         btn.colors = cb;
         btn.onClick.AddListener(onClickAction);
 
@@ -1138,9 +1175,9 @@ public class IntroSequenceManager : MonoBehaviour
 
         TextMeshProUGUI tmp = txtObj.AddComponent<TextMeshProUGUI>();
         tmp.text = "✕";
-        tmp.fontSize = 20;
+        tmp.fontSize = 22;
         tmp.fontStyle = FontStyles.Bold;
-        tmp.color = new Color(0.95f, 0.95f, 1f, 0.95f);
+        tmp.color = Color.white;
         tmp.alignment = TextAlignmentOptions.Center;
 
         return closeObj;

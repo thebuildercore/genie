@@ -8,6 +8,10 @@ public class DebugPCTester : MonoBehaviour
     public CompanionHighFive highFiveModule;
     public CompanionBlockHelper blockHelper;
 
+    [Header("Beer Pong Robot")]
+    [Tooltip("CompanionBeerPong robot in the BeerPong scene. Auto-found if null.")]
+    public CompanionBeerPong beerPongBot;
+
     [Header("Camera & Testing Perspective")]
     [Tooltip("If true, automatically adjusts the camera position up and back in PC mode to frame the table and robot perfectly.")]
     public bool autoFrameCameraForPC = true;
@@ -44,6 +48,11 @@ public class DebugPCTester : MonoBehaviour
         if (blockHelper == null)
         {
             blockHelper = Object.FindFirstObjectByType<CompanionBlockHelper>();
+        }
+
+        if (beerPongBot == null)
+        {
+            beerPongBot = Object.FindFirstObjectByType<CompanionBeerPong>();
         }
 
         // Adjust camera position in PC editor so table and robot are framed cleanly
@@ -110,6 +119,25 @@ public class DebugPCTester : MonoBehaviour
             else if (gameManager != null)
             {
                 gameManager.TriggerEnterArena();
+            }
+        }
+
+        // 1b. Direct Game Selection simulation (C for Cocasnap, V for Beer Pong)
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            Debug.Log("DEBUG: Simulating Enter Cocasnap click (C)");
+            if (introManager != null)
+            {
+                introManager.LaunchCocasnap();
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.V))
+        {
+            Debug.Log("DEBUG: Simulating Enter Beer Pong click (V)");
+            if (introManager != null)
+            {
+                introManager.LaunchBeerPong();
             }
         }
 
@@ -206,7 +234,7 @@ public class DebugPCTester : MonoBehaviour
             }
         }
 
-        // 8. Special Interaction 2: Block Too Big / Heavy ("Legs Tremble, Drop & Fall") (2 key)
+        // 8. Special Interaction 2: Block Too Big / Heavy (Key 2)
         if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2))
         {
             Debug.Log("DEBUG: Simulating Block Too Big / Tremble & Fall (Key 2)");
@@ -223,6 +251,39 @@ public class DebugPCTester : MonoBehaviour
             {
                 gameManager.RequestBlockDemo(false, true);
             }
+        }
+
+        // --- Beer Pong Robot Debug Keys ---
+        // F = Force robot to fetch ball
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            Debug.Log("DEBUG: BeerPong Robot - Force Fetch (F)");
+            if (beerPongBot == null) beerPongBot = Object.FindFirstObjectByType<CompanionBeerPong>();
+            beerPongBot?.DEBUG_ForceFetch();
+        }
+
+        // G = Force robot Hurt/Angry
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            Debug.Log("DEBUG: BeerPong Robot - Force Hurt (G)");
+            if (beerPongBot == null) beerPongBot = Object.FindFirstObjectByType<CompanionBeerPong>();
+            beerPongBot?.DEBUG_ForceHurt();
+        }
+
+        // J = Force robot Calm Down
+        if (Input.GetKeyDown(KeyCode.J))
+        {
+            Debug.Log("DEBUG: BeerPong Robot - Force Calm Down (J)");
+            if (beerPongBot == null) beerPongBot = Object.FindFirstObjectByType<CompanionBeerPong>();
+            beerPongBot?.DEBUG_ForceCalmDown();
+        }
+
+        // K = Force robot Offer Ball
+        if (Input.GetKeyDown(KeyCode.K))
+        {
+            Debug.Log("DEBUG: BeerPong Robot - Force Offer Ball (K)");
+            if (beerPongBot == null) beerPongBot = Object.FindFirstObjectByType<CompanionBeerPong>();
+            beerPongBot?.DEBUG_ForceOffer();
         }
     }
 #endif

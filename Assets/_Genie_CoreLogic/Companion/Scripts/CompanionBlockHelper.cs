@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
+using System.Collections.Generic;
 using Oculus.Interaction;
 
 /// <summary>
@@ -42,15 +43,27 @@ public class CompanionBlockHelper : MonoBehaviour
     public float maxReachHeight = 0.55f;
 
     [Tooltip("Size threshold above which a block is deemed too big/heavy for the robot to lift.")]
-    public float largeBlockSizeThreshold = 0.35f;
+    public float largeBlockSizeThreshold = 0.5f;
 
     [Header("Autonomous VR Helper Settings")]
     [Tooltip("If true, the companion periodically scans for unplaced puzzle blocks and autonomously helps bring them to the user.")]
     public bool autonomousHelpingEnabled = true;
-    [Tooltip("Seconds between autonomous block helping checks.")]
-    public float autonomousCheckInterval = 14.0f;
-    private float autoHelpTimer = 0f;
-    private bool hasDoneInitialHelp = false;
+    [Tooltip("Duration (in seconds) the user must make no movement or touch no blocks before companion assists (default 15s).")]
+    public float userInactivityThreshold = 15.0f;
+    private float userInactivityTimer = 0f;
+
+    // Track blocks and player activity to reset inactivity timer
+    private struct BlockTransformRecord
+    {
+        public Transform tr;
+        public Vector3 lastPos;
+        public Quaternion lastRot;
+        public Grabbable grabbable;
+    }
+    private List<BlockTransformRecord> trackedBlocks = new List<BlockTransformRecord>();
+    private float blockScanTimer = 0f;
+    private Vector3 lastHeadPosition;
+    private Quaternion lastHeadRotation;
 
     [Header("State (Read-Only)")]
     [SerializeField] private bool isBusy = false;
@@ -105,7 +118,21 @@ public class CompanionBlockHelper : MonoBehaviour
 
             linkedGameManager.OnBlockDemoRequested -= HandleDemoRequest;
             linkedGameManager.OnBlockDemoRequested += HandleDemoRequest;
+
+            linkedGameManager.OnObjectGrabbedEvent -= NotifyUserActivity;
+            linkedGameManager.OnObjectGrabbedEvent += NotifyUserActivity;
+
+            linkedGameManager.OnObjectReleasedEvent -= NotifyUserActivity;
+            linkedGameManager.OnObjectReleasedEvent += NotifyUserActivity;
         }
+
+        if (Camera.main != null)
+        {
+            lastHeadPosition = Camera.main.transform.position;
+            lastHeadRotation = Camera.main.transform.rotation;
+        }
+
+        RefreshTrackedBlocks();
     }
 
     private void OnDestroy()
@@ -114,11 +141,24 @@ public class CompanionBlockHelper : MonoBehaviour
         {
             linkedGameManager.OnBlockHelpRequested -= HelpWithNearestBlock;
             linkedGameManager.OnBlockDemoRequested -= HandleDemoRequest;
+            linkedGameManager.OnObjectGrabbedEvent -= NotifyUserActivity;
+            linkedGameManager.OnObjectReleasedEvent -= NotifyUserActivity;
         }
+    }
+
+    /// <summary>
+    /// Resets the inactivity timer whenever user makes movement or interacts with a block.
+    /// </summary>
+    public void NotifyUserActivity()
+    {
+        userInactivityTimer = 0f;
     }
 
     private void Update()
     {
+        // Continuously check if player moved or touched any block
+        TrackUserAndBlockActivity();
+
         if (!autonomousHelpingEnabled || isBusy) return;
 
         // Only help if companion is currently in Idle state
@@ -127,15 +167,117 @@ public class CompanionBlockHelper : MonoBehaviour
             return;
         }
 
-        autoHelpTimer += Time.deltaTime;
-        float threshold = hasDoneInitialHelp ? autonomousCheckInterval : 7.0f;
-        if (autoHelpTimer >= threshold)
-        {
-            autoHelpTimer = 0f;
-            hasDoneInitialHelp = true;
+        userInactivityTimer += Time.deltaTime;
 
-            Debug.Log("CompanionBlockHelper: Autonomous loop triggered block help!");
+        // Only help when user has made no movement and touched no blocks for at least 15s (or userInactivityThreshold)
+        if (userInactivityTimer >= userInactivityThreshold)
+        {
+            userInactivityTimer = 0f;
+            Debug.Log($"CompanionBlockHelper: User has been inactive for {userInactivityThreshold}s (no movement or touched blocks). Assisting with block!");
             HelpWithNearestBlock();
+        }
+    }
+
+    private void TrackUserAndBlockActivity()
+    {
+        // 1. Refresh list of puzzle blocks periodically
+        blockScanTimer += Time.deltaTime;
+        if (blockScanTimer >= 1.0f)
+        {
+            blockScanTimer = 0f;
+            RefreshTrackedBlocks();
+        }
+
+        // 2. Check if any block moved or is being grabbed by player
+        for (int i = 0; i < trackedBlocks.Count; i++)
+        {
+            var record = trackedBlocks[i];
+            if (record.tr == null || !record.tr.gameObject.activeInHierarchy) continue;
+            if (record.tr.gameObject == heldBlock) continue;
+
+            if (record.grabbable != null && record.grabbable.SelectingPointsCount > 0)
+            {
+                NotifyUserActivity();
+                record.lastPos = record.tr.position;
+                record.lastRot = record.tr.rotation;
+                trackedBlocks[i] = record;
+                return;
+            }
+
+            float posDelta = Vector3.Distance(record.tr.position, record.lastPos);
+            float rotDelta = Quaternion.Angle(record.tr.rotation, record.lastRot);
+
+            if (posDelta > 0.005f || rotDelta > 1.0f)
+            {
+                NotifyUserActivity();
+                record.lastPos = record.tr.position;
+                record.lastRot = record.tr.rotation;
+                trackedBlocks[i] = record;
+                return;
+            }
+        }
+
+        // 3. Check VR camera / head movement
+        if (Camera.main != null)
+        {
+            Vector3 curHeadPos = Camera.main.transform.position;
+            Quaternion curHeadRot = Camera.main.transform.rotation;
+
+            float headPosDelta = Vector3.Distance(curHeadPos, lastHeadPosition);
+            float headRotDelta = Quaternion.Angle(curHeadRot, lastHeadRotation);
+
+            if (headPosDelta > 0.04f || headRotDelta > 4.0f)
+            {
+                NotifyUserActivity();
+                lastHeadPosition = curHeadPos;
+                lastHeadRotation = curHeadRot;
+                return;
+            }
+        }
+
+        // 4. Check PC keyboard or mouse input
+        if (Input.anyKey || Mathf.Abs(Input.GetAxis("Mouse X")) > 0.05f || Mathf.Abs(Input.GetAxis("Mouse Y")) > 0.05f)
+        {
+            NotifyUserActivity();
+        }
+    }
+
+    private void RefreshTrackedBlocks()
+    {
+        trackedBlocks.Clear();
+
+        PuzzlePiece[] pieces = Object.FindObjectsByType<PuzzlePiece>(FindObjectsSortMode.None);
+        foreach (var p in pieces)
+        {
+            if (p != null && p.gameObject != heldBlock)
+            {
+                trackedBlocks.Add(new BlockTransformRecord
+                {
+                    tr = p.transform,
+                    lastPos = p.transform.position,
+                    lastRot = p.transform.rotation,
+                    grabbable = p.GetComponent<Grabbable>()
+                });
+            }
+        }
+
+        Grabbable[] grabbables = Object.FindObjectsByType<Grabbable>(FindObjectsSortMode.None);
+        foreach (var g in grabbables)
+        {
+            if (g != null && g.gameObject != heldBlock && !trackedBlocks.Exists(b => b.tr == g.transform))
+            {
+                string lower = g.name.ToLower();
+                if (lower.Contains("cube") || lower.Contains("block") || lower.Contains("piece"))
+                {
+                    trackedBlocks.Add(new BlockTransformRecord
+                    {
+                        tr = g.transform,
+                        lastPos = g.transform.position,
+                        lastRot = g.transform.rotation,
+                        grabbable = g
+                    });
+                }
+            }
         }
     }
 
@@ -161,8 +303,8 @@ public class CompanionBlockHelper : MonoBehaviour
         {
             GameObject pivot = new GameObject("BlockHoldPivot");
             pivot.transform.SetParent(transform);
-            // Positioned centrally in front of robot chest
-            pivot.transform.localPosition = new Vector3(0f, 0.22f, 0.28f);
+            // Positioned centrally in front of robot chest with clearance for up to 0.5m scale blocks
+            pivot.transform.localPosition = new Vector3(0f, 0.22f, 0.35f);
             pivot.transform.localRotation = Quaternion.identity;
             holdPivot = pivot.transform;
         }
@@ -290,11 +432,13 @@ public class CompanionBlockHelper : MonoBehaviour
 
         if (isBig)
         {
-            block.transform.localScale = new Vector3(0.55f, 0.45f, 0.55f);
+            // Block clearly exceeding 0.5 size limit on each axis
+            block.transform.localScale = new Vector3(0.65f, 0.55f, 0.65f);
         }
         else
         {
-            block.transform.localScale = new Vector3(0.22f, 0.22f, 0.22f);
+            // Liftable block within 0.5 scale limit
+            block.transform.localScale = new Vector3(0.35f, 0.35f, 0.35f);
         }
 
         Rigidbody rb = block.AddComponent<Rigidbody>();
@@ -308,6 +452,77 @@ public class CompanionBlockHelper : MonoBehaviour
         }
 
         return block;
+    }
+
+    /// <summary>
+    /// Calculates the horizontal corners of the box in world space, and returns the corner closest
+    /// to the robot companion so the robot moves to the corner instead of going inside the center of the box.
+    /// </summary>
+    public Vector3 GetBestCorner(GameObject block, out Vector3 outwardDir)
+    {
+        Transform tr = block.transform;
+        Collider col = block.GetComponent<Collider>();
+        BoxCollider boxCol = block.GetComponent<BoxCollider>();
+
+        Vector3 center;
+        Vector3 halfSize;
+
+        if (boxCol != null)
+        {
+            center = tr.TransformPoint(boxCol.center);
+            halfSize = Vector3.Scale(boxCol.size * 0.5f, tr.lossyScale);
+        }
+        else if (col != null)
+        {
+            center = col.bounds.center;
+            halfSize = col.bounds.extents;
+        }
+        else
+        {
+            center = tr.position;
+            halfSize = tr.lossyScale * 0.5f;
+        }
+
+        Vector3 right = tr.right * halfSize.x;
+        Vector3 forward = tr.forward * halfSize.z;
+
+        // 4 horizontal corners in world space
+        Vector3[] corners = new Vector3[4]
+        {
+            center + right + forward,
+            center + right - forward,
+            center - right + forward,
+            center - right - forward
+        };
+
+        Vector3 bestCorner = corners[0];
+        float bestDist = float.MaxValue;
+        Vector3 robotPos = transform.position;
+
+        for (int i = 0; i < corners.Length; i++)
+        {
+            float d = Vector3.Distance(robotPos, corners[i]);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                bestCorner = corners[i];
+            }
+        }
+
+        Vector3 outVec = bestCorner - center;
+        outVec.y = 0f;
+        if (outVec.sqrMagnitude > 0.0001f)
+        {
+            outwardDir = outVec.normalized;
+        }
+        else
+        {
+            Vector3 fromCenter = robotPos - center;
+            fromCenter.y = 0f;
+            outwardDir = fromCenter.sqrMagnitude > 0.001f ? fromCenter.normalized : transform.forward;
+        }
+
+        return bestCorner;
     }
 
     // -------------------------------------------------------------
@@ -324,26 +539,32 @@ public class CompanionBlockHelper : MonoBehaviour
 
         Debug.Log($"CompanionBlockHelper: Starting assistance with block {targetBlock.name}");
 
-        // 1. Walk over to the block
-        Vector3 targetPos = targetBlock.transform.position;
-        Vector3 approachPos = targetPos - (targetPos - transform.position).normalized * 0.35f;
+        // 1. Move to the corner of the box instead of the center coordinates
+        Vector3 outwardDir;
+        Vector3 targetCorner = GetBestCorner(targetBlock, out outwardDir);
+
+        // Position the robot outside the corner with enough clearance so it stands at the corner without clipping inside
+        float cornerClearance = 0.28f;
+        Vector3 approachPos = targetCorner + outwardDir * cornerClearance;
         approachPos.y = transform.position.y;
 
-        yield return StartCoroutine(WalkToPosition(approachPos, 0.38f));
+        yield return StartCoroutine(WalkToPosition(approachPos, 0.18f));
 
-        // Face the block
-        yield return StartCoroutine(FacePosition(targetPos));
+        // Face the corner of the block directly
+        yield return StartCoroutine(FacePosition(targetCorner));
 
         // 2. Check if block is too big/heavy
+        // Hard-logic check: scale limit is 0.5 at each x, y, and z
         bool isTooBig = forceTooBig;
+        Vector3 scale = targetBlock.transform.lossyScale;
         Collider col = targetBlock.GetComponent<Collider>();
-        if (col != null)
+        Vector3 size = col != null ? col.bounds.size : scale;
+
+        if (scale.x > 0.5f || scale.y > 0.5f || scale.z > 0.5f ||
+            size.x > 0.5f || size.y > 0.5f || size.z > 0.5f ||
+            size.x > largeBlockSizeThreshold || size.y > largeBlockSizeThreshold || size.z > largeBlockSizeThreshold)
         {
-            Vector3 size = col.bounds.size;
-            if (size.x > largeBlockSizeThreshold || size.y > largeBlockSizeThreshold || size.z > largeBlockSizeThreshold)
-            {
-                isTooBig = true;
-            }
+            isTooBig = true;
         }
 
         // ---------------------------------------------------------
@@ -351,14 +572,15 @@ public class CompanionBlockHelper : MonoBehaviour
         // ---------------------------------------------------------
         if (isTooBig)
         {
-            Debug.Log("CompanionBlockHelper: Block is TOO BIG! Robot struggles, trembles, and falls.");
+            Debug.Log("CompanionBlockHelper: Block is TOO BIG (>0.5)! Robot struggles, trembles, and falls.");
 
-            // Crouch down to grab
+            // Crouch down to grab corner
             yield return StartCoroutine(AnimateCrouch(0.18f, true));
 
-            // Attach block to hands temporarily
+            // Attach block to hands temporarily at the corner with forward clearance
             targetBlock.transform.SetParent(holdPivot);
-            targetBlock.transform.localPosition = Vector3.zero;
+            targetBlock.transform.localPosition = new Vector3(0f, 0f, 0.12f);
+            targetBlock.transform.localRotation = Quaternion.identity;
             Rigidbody blockRb = targetBlock.GetComponent<Rigidbody>();
             if (blockRb != null) blockRb.isKinematic = true;
 
@@ -468,14 +690,14 @@ public class CompanionBlockHelper : MonoBehaviour
         // ---------------------------------------------------------
         // BRANCH B: STANDARD BLOCK (LIFTABLE)
         // ---------------------------------------------------------
-        Debug.Log("CompanionBlockHelper: Standard block lifted successfully!");
+        Debug.Log("CompanionBlockHelper: Standard block lifted successfully from corner!");
 
-        // Crouch and pick up
+        // Crouch and pick up by the corner
         yield return StartCoroutine(AnimateCrouch(0.18f, true));
 
         heldBlock = targetBlock;
         heldBlock.transform.SetParent(holdPivot);
-        heldBlock.transform.localPosition = Vector3.zero;
+        heldBlock.transform.localPosition = new Vector3(0f, 0f, 0.12f);
         heldBlock.transform.localRotation = Quaternion.identity;
 
         Rigidbody rb = heldBlock.GetComponent<Rigidbody>();
