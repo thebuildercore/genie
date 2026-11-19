@@ -1,0 +1,97 @@
+# Kinexus
+
+> **A mixed reality companion turning your living room into a relaxing, zero-stress playground with spatial block puzzles.**
+
+---
+
+### 📋 Submission Overview
+
+| Field | Detail |
+|---|---|
+| **Submission Name** | Kinexus |
+| **Track** | Gaming |
+| **Division** | New Experience |
+| **Team Members** | **Akshaya Krishna** (Leader, Companion Logic)<br>**Darshil Padmani** (XR Engine) |
+
+---
+
+## 💡 Inspiration
+
+When Meta released their **2025 Quest Gamer Segments**, we recognized a massive, untapped opportunity in the **"Leisure Lover"** demographic—players seeking low-pressure, feel-good experiences to de-stress rather than intense room-scale action.
+
+Our core character design and interaction philosophy was heavily inspired by the viral Instagram 3D character **@grimthegenie**. We loved how expressive, bite-sized animations could evoke an immediate emotional connection. We hypothesized that bringing that level of stylized, tactile charm into Mixed Reality would perfectly satisfy the Leisure Lover's need for a zero-friction, relaxing environment.
+
+To quantify this, we designed our core gameplay loop around a bonding equation, where the daily retention value $R_t$ is driven by tactile engagement:
+
+$$R_{t} = \sum_{i=1}^{n} (\alpha \cdot \text{Taps}_i) + (\beta \cdot \text{Puzzles Solved}_i)$$
+
+By anchoring our inspiration in both social media character design and low-stakes puzzle mechanics, **Kinexus** was born.
+
+---
+
+## 🎮 What It Does
+
+**Genie** is a mixed-reality experience that brings a playful robot companion into the player's physical environment.
+
+Players can interact with Genie naturally using their hands or controllers. The companion responds to different actions with expressive animations, reactions, and sounds.
+
+Once spawned into your physical room, the robot reacts to your taps and shakes with dynamic audio and visual feedback. To keep the experience engaging, Kinexus offers a bite-sized, room-aware minigame loop:
+
+- **Spatial Block Puzzles:** Players use hand tracking (or optional controllers) to grab frosted-glass puzzle chunks and assemble them directly on their physical coffee tables.
+
+### Core Companion Interactions:
+- **Come closer:** Show both hands to invite Genie to approach.
+- **High-five:** Raise an open palm and Genie responds with a high-five.
+- **Poke:** Gently tap Genie and discover its playful, escalating reactions.
+- **Pick up and shake:** Grab Genie and shake it to trigger a dizzy reaction.
+- **Play together:** Genie can interact with objects and help during the Cocasnap block mini-game.
+- **Expressive personality:** Genie can show happiness, surprise, sadness, dizziness, and other reactions based on what happens.
+
+The goal is to make interactions feel natural, fun, and memorable rather than relying only on buttons and menus.
+
+---
+
+## 🏆 Adherence to Competition Standards & Tests
+
+To ensure Kinexus delivers the ultimate "Leisure Lover" experience, we engineered the project to strictly pass all mandatory competition guidelines right from the foundation:
+
+### 1. Hands-First (The Controller-Free Test)
+* **Requirement:** Fully usable with hands end-to-end. Controller support optional.
+* **Kinexus Implementation:** Kinexus is built to be fully playable with hands end-to-end. While controller support remains fully functional and seamlessly integrated as an optional input for user comfort, a player can complete the entire puzzle and interaction loop using only natural pinch, drag, and tap hand gestures via the Meta Interaction SDK.
+
+### 2. Seated-Optimized (The "Airplane Seat" Test)
+* **Requirement:** Designed for stationary use; does every interaction work in a 2-foot radius?
+* **Kinexus Implementation:** We dynamically spawn the virtual companion and the frosted-glass puzzle pieces within a strict radius of:
+  $$r \le 2\text{ ft}$$
+  from the headset, ensuring absolutely zero roomscale movement is required.
+
+### 3. Easy to Get Into / Out Of (The "One Bus Stop" Test)
+* **Requirement:** Fast cold start, clean pause/resume, and satisfying in $\le 10\text{ minutes}$.
+* **Kinexus Implementation:** Kinexus drops the player immediately into the MR environment with no complex menus. A player can pet the robot, solve a spatial block puzzle, trigger the bonding progression loop, and exit—all within a satisfying $5$ to $8$ minute session.
+
+### 4. Original, Not a Wrapper (The "Take It Away" Test)
+* **Requirement:** Core experience is Entrant-built; remove the third-party service and the project still exists.
+* **Kinexus Implementation:** Kinexus is a 100% native, standalone experience built entirely from scratch. We did not use any wrappers, external AI APIs, or third-party services. The core experience is driven completely by our own custom C# state machines, Unity physics, and local MRUK integration, meaning the project is completely independent and self-contained.
+
+---
+
+## 🛠️ How We Built It
+
+We developed the application using **Unity 6.2 URP** and the **Meta XR SDK**, utilizing the **Meta VR CLI** to accelerate our development workflow.
+
+* **Interaction SDK:** We implemented physics-based colliders on the companion so that reaching out and tapping it provides immediate, tactile feedback. We designed a custom distance-grab mechanic, allowing a seated player to comfortably manipulate puzzle pieces using natural gestures without having to stretch or lean.
+* **Meaningful Passthrough:** We integrated **MRUK (Mixed Reality Utility Kit)** so Kinexus interacts directly with the user's environment. We used Scene Understanding to anchor the block puzzle UI to physical tables and implemented spatial colliders so the puzzle blocks accurately respect the room's furniture.
+
+---
+
+## 🚧 Challenges We Ran Into
+
+Tuning the interactions for the **"Airplane Seat"** test was challenging. We had to carefully adjust the grab distances and snap-to-grid mechanics so a seated player could comfortably assemble the puzzle on their table without needing to physically lean forward or stretch outside the two-foot radius. 
+
+Additionally, achieving a clean aesthetic in passthrough required pivoting from standard bloom to frosted glass shaders and soft drop shadows to make the holograms look like premium, physical tech toys sitting in the room.
+
+---
+
+## 🚀 What's Next for Kinexus
+
+We plan to expand our custom state machines and explore integrating local, on-device audio models so the companion can converse naturally, evolving from a virtual pet into a genuine interactive friend. We will also introduce new seated MR puzzle genres and physics-based interactions tailored specifically for the Leisure Lover audience.
