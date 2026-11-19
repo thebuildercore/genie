@@ -8,13 +8,13 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Genie_CoreLogic/Scenes/abc.unity
     guid: 57a636ca8f4caf34c995e95fb263c6c6
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Genie_CoreLogic/Scenes/Genie.unity
     guid: 99c9720ab356a0642a771bea13969a05
-  - enabled: 1
+  - enabled: 0
     path: Assets/_BeerPong/Scenes/_BeerPong.unity
     guid: 4b1339939d1f47047a4ea5da1fc80c94
-  - enabled: 1
+  - enabled: 0
     path: Assets/_Cocosnap/Assets/_TheCocoaSnap/Scenes/_TheCocoaSnap.unity
     guid: 1701dbd81f5e75b43b73a13d927e7684
   m_configObjects:
